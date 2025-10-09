@@ -1,6 +1,7 @@
 
-import SidebarLayout from "@/layout/sidebarLayout"
-
+"use client"
+import SidebarLayout from "@/layout/SidebarLayout"
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
@@ -20,15 +21,39 @@ export default function DashboardLayout({
     // { label: 'API Requests', href: '#api-requests' },
     // { label: 'GET Method', isHiddenOnMobile: false },
   ];
-
+  const pathname = usePathname();
+  
+  // 解析路径生成面包屑
+  const generateBreadcrumbs = () => {
+    const items: {label: string; href?: string; isHiddenOnMobile?: boolean}[] = [];
+    
+    // 分割路径
+    const segments = pathname.split('/').filter(segment => segment);
+    
+    let currentPath = '';
+    segments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      // 最后一个 segment 作为当前页，不添加链接
+      if (index === segments.length - 1) {
+        items.push({ 
+          label: segment.charAt(0).toUpperCase() + segment.slice(1),
+          isHiddenOnMobile: false
+        });
+      } else {
+        items.push({ 
+          label: segment.charAt(0).toUpperCase() + segment.slice(1),
+          href: currentPath,
+          isHiddenOnMobile: true
+        });
+      }
+    });
+    
+    return items;
+  };
   return (
     // 2. 使用 Sidebar 组件，传入面包屑数据和页面内容
-    <SidebarLayout breadcrumbItems={breadcrumbItems}>
-      {/* 页面主体内容（原代码中的 {children}） */}
-      <div className="p-4">
-        <h1>Data Fetching</h1>
-        <p>这是数据请求页面的内容...</p>
-      </div>
+    <SidebarLayout breadcrumbItems={generateBreadcrumbs()}>
+      {children}
     </SidebarLayout>
   );
 }

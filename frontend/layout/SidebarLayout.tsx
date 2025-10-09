@@ -1,11 +1,9 @@
 
 import { AppSidebar } from "@/components/app-sidebar"
-import HeaderLayout from "@/layout/headerLayout"
-import { Separator } from "@/components/ui/separator"
+import HeaderLayout from "@/layout/HeaderLayout"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Sidebar } from "lucide-react";
 import App from "next/app";
