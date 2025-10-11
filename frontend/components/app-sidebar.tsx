@@ -11,7 +11,7 @@ import {
   Map,
   PieChart,
   Settings2,
-  SquareTerminal,
+  PlaneTakeoff,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -52,14 +52,14 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "版块",
+      url: "/section",
+      icon: PlaneTakeoff,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "总览",
+          url: "/overview",
         },
         {
           title: "Starred",
@@ -133,7 +133,7 @@ const data = {
         {
           title: "Limits",
           url: "#",
-        },
+        },  
       ],
     },
   ],

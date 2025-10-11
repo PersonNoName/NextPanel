@@ -9,6 +9,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { House } from "lucide-react"
 import React from "react"
 
 interface BreadcrumbItemType {
@@ -22,8 +23,10 @@ interface HeaderProps {
 
 const HeaderLayout: React.FC<HeaderProps> = ({ breadcrumbItems }) => {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 position: fixed z-index:100 top:0 left:0 right:0 w-full bg-white">
       <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 !h-4" />
+      <a href="/dashboard" className="mr-2"><House size={16}/></a>
       <Separator orientation="vertical" className="mr-2 !h-4" />
       <Breadcrumb>
         <BreadcrumbList>
@@ -49,15 +52,6 @@ const HeaderLayout: React.FC<HeaderProps> = ({ breadcrumbItems }) => {
               </React.Fragment>
             );
           })}
-          {/* <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink href="#">
-              Building Your Application
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block" />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-          </BreadcrumbItem> */}
         </BreadcrumbList>
       </Breadcrumb>
     </header>
