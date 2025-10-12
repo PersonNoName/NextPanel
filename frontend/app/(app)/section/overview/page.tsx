@@ -30,9 +30,9 @@ export default function OverviewPage() {
   return (
     <div className="flex h-full mx-auto p-4 flex-col gap-4">
       {/* 关键修改：使用 grid-rows-1 和 items-stretch */}
-      <div className="grid grid-cols-1 grid-rows-1 gap-4 md:grid-cols-3 w-full items-stretch h-1/3">
+      <div className="flex flex-col lg:flex-row w-full h-[480px] gap-4">
         {/* 左侧表格容器 */}
-        <div className="bg-gray-100 p-4 rounded-lg shadow flex flex-col h-full">
+        <div className="bg-gray-100 p-4 rounded-lg shadow flex flex-col w-full lg:w-80 xl:w-96">
           <p className="text-lg font-bold mb-2">各板块涨跌幅</p>
           <div className="flex-1 overflow-y-auto">
             <DataTable 
@@ -83,9 +83,8 @@ export default function OverviewPage() {
           </div>
         </div>
         
-        {/* 右侧图表容器 - 高度由图表决定 */}
-        <div className="col-span-2 shadow flex items-stretch justify-center">
-          <NegativeBarChartComponent style={'h-full w-full'} />
+        <div className="flex-1 shadow min-w-0 bg-white rounded-lg overflow-hidden">
+          <NegativeBarChartComponent style={'h-full w-full min-w-0'} />
         </div>
       </div>
       {open && (
