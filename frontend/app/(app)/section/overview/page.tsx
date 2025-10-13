@@ -4,6 +4,7 @@ import { DataTable } from "@/components/data-table"
 import { useState } from "react"
 import { GeneralSelect } from "@/components/general-select";
 import { CustomDialog } from "@/components/pop-box"
+import { CustomSectionTable } from "@/components/tables/custom-section-table"
 export default function OverviewPage() {
   const [open, setOpen] = useState(false)
   const [timeSelected, setTimeSelected] = useState("1d")
@@ -136,7 +137,7 @@ export default function OverviewPage() {
           className="bg-gray-50 p-4 rounded-lg shadow"
           style={{ width: '384px' }}
         >
-          {/* 内容 */}
+          <CustomSectionTable />
         </div>
       </div>
 
