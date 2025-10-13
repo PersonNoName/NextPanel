@@ -2,18 +2,31 @@
 import NegativeBarChartComponent from "@/components/charts/negative-bar"
 import { DataTable } from "@/components/data-table"
 import { useState } from "react"
-import { Button } from "@/components/ui/button";
+import { GeneralSelect } from "@/components/general-select";
 import { CustomDialog } from "@/components/pop-box"
-
 export default function OverviewPage() {
   const [open, setOpen] = useState(false)
+  const [timeSelected, setTimeSelected] = useState("1d")
+  const [countSelected, setCountSelected] = useState("10")
+
+  const RangeOptions = [
+    { value: "1d", label: "1天" },
+    { value: "5d", label: "5天" },
+    { value: "10d", label: "10天"},
+    { value: "15d", label: "15天"},
+  ]
+  const CountOptions = [
+    { value: "10", label: "10条"},
+    { value: "20", label: "20条"},
+    { value: "30", label: "30条"},
+  ]
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
-    const bgColor = rate < 0 ? 'bg-green-100' : 'bg-red-100';
+    const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
     const textColor = rate < 0 ? 'text-green-800' : 'text-red-800';
     
     return (
-      <span className={`px-2 py-1 rounded font-medium ${bgColor} ${textColor}`}>
+      <span className={`px-2 py-1 rounded font-sm ${bgColor} ${textColor}`}>
         {value}
       </span>
     );
@@ -22,19 +35,40 @@ export default function OverviewPage() {
   const handleNameClick = (row: any) => {
     setOpen(true);
   };
+  
   async function handleConfirm() {
-  await new Promise((resolve) => setTimeout(resolve, 2000)); // 模拟请求
-  alert("提交成功！");
-}
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    alert("提交成功！");
+  }
 
   return (
-    <div className="flex h-full mx-auto p-4 flex-col gap-4">
-      {/* 关键修改：使用 grid-rows-1 和 items-stretch */}
-      <div className="flex flex-col lg:flex-row w-full h-[480px] gap-4">
+    <div className="w-full h-full p-4 overflow-y-auto overflow-x-hidden grid grid-cols-1 gap-4 auto-rows-min">
+      {/* 第一行 - 表格和图表 */}
+      <div className="w-full grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-4 h-[480px]">
         {/* 左侧表格容器 */}
-        <div className="bg-gray-100 p-4 rounded-lg shadow flex flex-col w-full lg:w-80 xl:w-96">
-          <p className="text-lg font-bold mb-2">各板块涨跌幅</p>
-          <div className="flex-1 overflow-y-auto">
+        <div className="bg-gray-50 p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden">
+          <div className="flex flex-between mb-2">
+            <p className="text-lg font-bold mb-2 flex justify-start">各板块涨跌幅</p>
+            <GeneralSelect
+              options={RangeOptions}
+              value={timeSelected}
+              onValueChange={setTimeSelected}
+              placeholder="选择时间范围"
+              size="sm"
+              width="fit"
+              className="ml-auto bg-gray-50"
+            />
+            <GeneralSelect
+              options={CountOptions}
+              value={countSelected}
+              onValueChange={setCountSelected}
+              placeholder="选择条数"
+              size="sm"
+              width="fit"
+              className="bg-gray-50 ml-1"
+            />
+          </div>
+          <div className="overflow-y-auto">
             <DataTable 
               showHeader={false} 
               columns={{ 
@@ -71,7 +105,7 @@ export default function OverviewPage() {
                     label: (row) => row.名称,
                     onClick: handleNameClick,
                     variant: 'outline',
-                    className: 'px-2 py-1 text-xs'
+                    className: 'px-2 py-1 text-xs shadow-sm'
                   },
                 ]
               }}
@@ -83,12 +117,30 @@ export default function OverviewPage() {
           </div>
         </div>
         
-        <div className="flex-1 shadow min-w-0 bg-white rounded-lg overflow-hidden">
-          <NegativeBarChartComponent style={'h-full w-full min-w-0'} />
+        {/* 右侧图表容器 - 自动填充剩余空间 */}
+        <div className="hidden xl:block shadow bg-white rounded-lg overflow-hidden">
+          <NegativeBarChartComponent />
         </div>
       </div>
+      {/* 第三行 */}
+      <div 
+        className="w-full"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr',
+          gap: '1rem',
+          height: '480px'
+        }}
+      >
+        <div 
+          className="bg-gray-50 p-4 rounded-lg shadow"
+          style={{ width: '384px' }}
+        >
+          {/* 内容 */}
+        </div>
+      </div>
+
       {open && (
-        <>
         <CustomDialog
           open={open}
           onOpenChange={setOpen}
@@ -99,7 +151,6 @@ export default function OverviewPage() {
             {/* 大量内容 */}
           </div>
         </CustomDialog>
-        </>
       )}
     </div>
   )
