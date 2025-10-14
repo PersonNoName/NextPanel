@@ -110,6 +110,11 @@ export function DataTable({
   };
   return ( 
     <Table className={cn(styles.table, className)}>
+      {data.length === 0 && (
+        <TableCaption className={cn("w-full flex justify-center items-center", styles.caption)}>
+          暂无数据
+        </TableCaption>
+      )}
       {showHeader && (
         <TableHeader className={styles.header}>
           <TableRow className={styles.row}>
@@ -127,26 +132,21 @@ export function DataTable({
       
       <TableBody className={styles.body}>
         {/* 处理无数据情况 */}
-        {data.length === 0 ? (
-          <TableCaption className={cn("w-full flex justify-center items-center", styles.caption)}>暂无数据</TableCaption>
-        ) : (
-          // 有数据时渲染表格行
-          data.map((row, index) => (
-            <TableRow 
-              key={index} 
-              className={styles.row}
-            >
-              {Object.keys(columns).map((col) => (
-                <TableCell 
-                  key={col} 
-                  className={styles.cell}
-                >
-                  {renderCellContent(col, row)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
-        )}
+        {data.length > 0 && data.map((row, index) => (
+          <TableRow 
+            key={index} 
+            className={styles.row}
+          >
+            {Object.keys(columns).map((col) => (
+              <TableCell 
+                key={col} 
+                className={styles.cell}
+              >
+                {renderCellContent(col, row)}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   )

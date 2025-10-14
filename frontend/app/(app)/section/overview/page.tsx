@@ -5,6 +5,10 @@ import { useState } from "react"
 import { GeneralSelect } from "@/components/general-select";
 import { CustomDialog } from "@/components/pop-box"
 import { CustomSectionTable } from "@/components/tables/custom-section-table"
+import { Button } from "@/components/ui/button";
+import { CirclePlus,SquarePlus } from "lucide-react";
+import { MultiSelectPopover } from "@/components/multi-select-popover";
+import LineChartComponent  from "@/components/charts/line-chart";
 export default function OverviewPage() {
   const [open, setOpen] = useState(false)
   const [timeSelected, setTimeSelected] = useState("1d")
@@ -21,6 +25,13 @@ export default function OverviewPage() {
     { value: "20", label: "20条"},
     { value: "30", label: "30条"},
   ]
+
+  const testOptions =   [
+    { id: "option-1", label: "医药", value: "option1" },
+    { id: "option-2", label: "煤炭", value: "option2" },
+    { id: "option-3", label: "电力", value: "option3" },
+    { id: "option-4", label: "银行", value: "option4" },
+  ];
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -44,19 +55,19 @@ export default function OverviewPage() {
 
   return (
     <div className="w-full h-full p-4 overflow-y-auto overflow-x-hidden grid grid-cols-1 gap-4 auto-rows-min">
-      {/* 第一行 - 表格和图表 */}
-      <div className="w-full grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-4 h-[480px]">
+      {/* 第一行 - 各板块涨跌幅表格和图表 */}
+      <div className="w-full grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 h-[480px]">
         {/* 左侧表格容器 */}
-        <div className="bg-gray-50 p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden">
+        <div className="bg-gray-50 p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden min-w-76">
           <div className="flex flex-between mb-2">
-            <p className="text-lg font-bold mb-2 flex justify-start">各板块涨跌幅</p>
+            <p className="text-lg font-bold mb-2 flex justify-start mr-2">各板块涨跌幅</p>
             <GeneralSelect
               options={RangeOptions}
               value={timeSelected}
               onValueChange={setTimeSelected}
               placeholder="选择时间范围"
               size="sm"
-              width="fit"
+              width="auto"
               className="ml-auto bg-gray-50"
             />
             <GeneralSelect
@@ -65,7 +76,7 @@ export default function OverviewPage() {
               onValueChange={setCountSelected}
               placeholder="选择条数"
               size="sm"
-              width="fit"
+              width="auto"
               className="bg-gray-50 ml-1"
             />
           </div>
@@ -119,25 +130,30 @@ export default function OverviewPage() {
         </div>
         
         {/* 右侧图表容器 - 自动填充剩余空间 */}
-        <div className="hidden xl:block shadow bg-white rounded-lg overflow-hidden">
+        <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
           <NegativeBarChartComponent />
         </div>
       </div>
-      {/* 第三行 */}
-      <div 
-        className="w-full"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr',
-          gap: '1rem',
-          height: '480px'
-        }}
-      >
-        <div 
-          className="bg-gray-50 p-4 rounded-lg shadow"
-          style={{ width: '384px' }}
-        >
-          <CustomSectionTable />
+      {/* 第二行 */}
+      <div className="w-full grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 h-[480px]">
+        <div className="bg-white p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden  min-w-76">
+          <div className="flex flex-between mb-2">
+            <p className="text-lg font-bold mb-2 flex justify-start mr-2">各板块涨跌幅</p>
+            
+            <MultiSelectPopover 
+              options={testOptions} 
+              customButton={
+                <Button variant="ghost" size="icon" className="ml-auto">
+                  <SquarePlus className="hover:text-primary transition-all duration-200"/>
+                </Button>
+              } 
+            />
+          </div>
+
+          <CustomSectionTable className="p-4 rounded-lg shadow w-full xl:w-96 h-full" />
+        </div>
+        <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
+          <LineChartComponent />
         </div>
       </div>
 

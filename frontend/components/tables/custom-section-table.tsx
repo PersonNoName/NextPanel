@@ -1,8 +1,9 @@
 import * as React from "react"
 import { DataTable } from "@/components/data-table"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
-export function CustomSectionTable() { 
+export function CustomSectionTable({ className }: { className?: string }) { 
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -28,8 +29,7 @@ export function CustomSectionTable() {
         名称: '名称', 
         涨跌幅: '涨跌幅',
       }}
-      data={[
-      ]}
+      data={[]}
       columnFormatters={{
         涨跌幅: formatChangeRate
       }}
@@ -44,9 +44,9 @@ export function CustomSectionTable() {
         ]
       }}
       styles={{
-        table: 'w-full',
+        table: 'w-full w-min-[300px]',
         cell: 'whitespace-nowrap text-sm py-1'
       }}
-    />
+    />    
   )
 }
