@@ -1,0 +1,28 @@
+# 依赖目录
+node_modules/
+# 依赖锁文件（可选，建议保留，确保依赖版本一致）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# 环境变量文件（包含敏感信息，如密钥、数据库密码）
+.env
+.env.local
+.env.development
+.env.production
+
+# 日志文件
+logs/
+*.log
+
+# 构建产物（前端项目，如 React/Vue 的打包结果）
+dist/
+build/
+out/
+
+# 编辑器配置文件（根据个人使用的编辑器添加，可选）
+.idea/        # WebStorm/IntelliJ
+.vscode/      # VS Code
+*.sublime-*   # Sublime Text
+.DS_Store     # macOS 系统文件
+Thumbs.db     # Windows 系统文件
