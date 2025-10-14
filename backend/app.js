@@ -1,41 +1,34 @@
-var createError = require('http-errors');
+// 只保留必要的核心依赖
 var express = require('express');
-var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+// 导入路由（根据实际需求保留）
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+// 保留必要的中间件
+app.use(logger('dev')); // 日志中间件（可选，但推荐保留）
+app.use(express.json()); // 解析 JSON 请求体（核心功能）
+app.use(express.urlencoded({ extended: false })); // 解析表单请求体（核心功能）
+app.use(cookieParser()); // 解析 Cookie（如果需要处理 Cookie 则保留，否则可移除）
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
+// 路由配置（根据实际需求保留）
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// catch 404 and forward to error handler
+// 404 错误处理（简化版）
 app.use(function(req, res, next) {
-  next(createError(404));
+  res.status(404).json({ error: 'Not Found' }); // 直接返回 JSON 错误
 });
 
-// error handler
+// 全局错误处理（简化版）
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  res.status(err.status || 500).json({
+    error: req.app.get('env') === 'development' ? err.message : 'Internal Server Error'
+  });
 });
 
 module.exports = app;
