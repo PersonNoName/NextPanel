@@ -141,59 +141,59 @@ export default function LineChartComponent({ data, style }: LineChartProps) {
         },
       },
       series: [
-        {
-          name: 'Email',
-          type: 'line',
-          stack: 'Total',
-          data: [120, 132, 101, 134, 90, 230, 210],
-          smooth: true,
-          lineStyle: {
-            width: 3,
-          },
-        },
-        {
-          name: 'Union Ads',
-          type: 'line',
-          stack: 'Total',
-          data: [220, 182, 191, 234, 290, 330, 310],
-          smooth: true,
-          lineStyle: {
-            width: 3,
-          },
-        },
-        {
-          name: 'Video Ads',
-          type: 'line',
-          stack: 'Total',
-          data: [150, 232, 201, 154, 190, 330, 410],
-          smooth: true,
-          lineStyle: {
-            width: 3,
-          },
-        },
-        {
-          name: 'Direct',
-          type: 'line',
-          stack: 'Total',
-          data: [320, 332, 301, 334, 390, 330, 320],
-          smooth: true,
-          lineStyle: {
-            width: 3,
-          },
-        },
-        {
-          name: 'Search Engine',
-          type: 'line',
-          stack: 'Total',
-          data: [820, 932, 901, 934, 1290, 1330, 1320],
-          smooth: true,
-          lineStyle: {
-            width: 3,
-          },
-        },
+  {
+    name: 'Email',
+    type: 'line' as const,
+    stack: 'Total',
+    data: [120, 132, 101, 134, 90, 230, 210],
+    smooth: true,
+    lineStyle: {
+      width: 3,
+    },
+  },
+  {
+    name: 'Union Ads',
+    type: 'line' as const,
+    stack: 'Total',
+    data: [220, 182, 191, 234, 290, 330, 310],
+    smooth: true,
+    lineStyle: {
+      width: 3,
+    },
+  },
+  {
+    name: 'Video Ads',
+    type: 'line' as const,
+    stack: 'Total',
+    data: [150, 232, 201, 154, 190, 330, 410],
+    smooth: true,
+    lineStyle: {
+      width: 3,
+    },
+  },
+  {
+    name: 'Direct',
+    type: 'line' as const,
+    stack: 'Total',
+    data: [320, 332, 301, 334, 390, 330, 320],
+    smooth: true,
+    lineStyle: {
+      width: 3,
+    },
+  },
+  {
+    name: 'Search Engine',
+    type: 'line' as const,
+    stack: 'Total',
+    data: [820, 932, 901, 934, 1290, 1330, 1320],
+    smooth: true,
+    lineStyle: {
+      width: 3,
+    },
+  },
       ].map(series => ({
         ...series,
-        symbol: 'none' // 统一添加 symbol: 'none'
+        symbol: 'none'
       })),
     };
 
