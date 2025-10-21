@@ -1,6 +1,6 @@
 
-import { AppSidebar } from "@/components/app-sidebar"
-import HeaderLayout from "@/layout/HeaderLayout"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import HeaderLayout from "@/components/layout/HeaderLayout"
 import {
   SidebarInset,
   SidebarProvider,

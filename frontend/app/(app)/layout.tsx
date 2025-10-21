@@ -1,6 +1,6 @@
 
 "use client"
-import SidebarLayout from "@/layout/SidebarLayout"
+import SidebarLayout from "@/components/layout/SidebarLayout"
 import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
