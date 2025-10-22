@@ -18,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 export function NavMain({
   items,
@@ -66,9 +67,10 @@ export function NavMain({
                         <SidebarMenuSubButton asChild isActive={isActive}
                           className="pl-3"
                         >
-                          <a href={fullUrl}>
+                          <Link href={fullUrl}> 
                             <span>{subItem.title}</span>
-                          </a>
+                          </Link>
+                          
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     )

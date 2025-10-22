@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const authRoutes = require('./routes/authRoutes');
+const etfRoutes = require('./routes/etfRoutes');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/config');
 const app = express();
@@ -28,7 +29,7 @@ if (process.env.NODE_ENV === 'development') {
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分钟
-  max: 100, // 每个 IP 每 15 分钟最多请求 100 次
+  max: 1000, // 每个 IP 每 15 分钟最多请求 100 次
   message: {
     message: '请求次数过多，请稍后再试',
     success: false
@@ -49,6 +50,7 @@ const authLimiter = rateLimit({
 
 // app.use('/api/', limiter);
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/etf', limiter, etfRoutes);
 
 // 404 错误处理（简化版）
 app.use(function(req, res, next) {
