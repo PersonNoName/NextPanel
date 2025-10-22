@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { successResponse, errorResponse } = require('../utils/responseFormatter');
 const { validateRegister, validateLogin } = require('../utils/validator');
-const User =require('../models/user');
+const User = require('../models/user');
 const config = require('../config/config');
 
 /**
@@ -28,7 +28,7 @@ const register = async (req, res) => {
     // Validate input
     const { error, value } = validateRegister(req.body);
     if (error) {
-      return errorResponse(res, 400, 'Validation error', {
+      return errorResponse(res, 400, error.message, {
         field: error.details[0].path[0],
         message: error.details[0].message
       });
@@ -85,7 +85,7 @@ const login = async (req, res) => {
     // Validate input
     const { error, value } = validateLogin(req.body);
     if (error) {
-      return errorResponse(res, 400, 'Validation error', {
+      return errorResponse(res, 400, error.message, {
         field: error.details[0].path[0],
         message: error.details[0].message
       });
@@ -133,6 +133,7 @@ const login = async (req, res) => {
  */
 const getCurrentUser = async (req, res) => {
   try {
+    console.log(req.user)
     return successResponse(res, 200, 'User retrieved successfully', {
       user: req.user
     });
@@ -142,8 +143,28 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+/**
+ * Logout user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const logout = async (req, res) => {
+  try {
+    // For JWT-based authentication, we don't need to do anything on the server side
+    // since JWT is stateless. The client should remove the token from storage.
+    // In a production environment, you might want to add the token to a blacklist
+    // if you need to invalidate tokens before they expire.
+    
+    return successResponse(res, 200, 'Logout successful');
+  } catch (error) {
+    console.error('Logout error:', error);
+    return errorResponse(res, 500, 'Internal server error');
+  }
+};
+
 module.exports = {
   register,
   login,
-  getCurrentUser
+  getCurrentUser,
+  logout
 };

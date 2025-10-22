@@ -2,14 +2,19 @@
 import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
 import userService, { User, LoginRequest, LoginResponse } from '@/lib/api/userService';
+import { toast } from 'sonner';
 
 // 获取当前用户信息的hook
 export const useGetCurrentUser = (): UseQueryResult<User> => {
   return useQuery({
     queryKey: ['currentUser'],
     queryFn: () => userService.getCurrentUser(),
-    staleTime: 10 * 60 * 1000, // 10分钟
+    staleTime: 24 * 60 * 60 * 1000, // 24小时
+    gcTime: 24 * 60 * 60 * 1000, // 缓存保留24小时
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // 关键：组件挂载时不重新获取
+    refetchOnReconnect: false,
   });
 };
 
@@ -42,19 +47,69 @@ export const useLogin = (): UseMutationResult<LoginResponse, Error, LoginRequest
   return useMutation({
     mutationFn: (credentials) => userService.login(credentials),
     onSuccess: (data) => {
-      // 存储token
+      // 存储token到localStorage
       localStorage.setItem('authToken', data.token);
+      
+      // 同时存储到cookie，以便middleware可以读取
+      // 注意：在客户端JavaScript中，HttpOnly标志会被忽略
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7);
+      document.cookie = `authToken=${data.token}; path=/; expires=${expirationDate.toUTCString()}; SameSite=Lax`;
+      
+      // 显示成功提示
+      toast.success('登录成功！');
     },
   });
 };
 
 // 用户登出的mutation hook
+// 用户登出的mutation hook
 export const useLogout = (): UseMutationResult<void, Error> => {
   return useMutation({
     mutationFn: () => userService.logout(),
-    onSuccess: () => {
-      // 清除token
+    onMutate: async () => {
+      // 清除localStorage中的token
       localStorage.removeItem('authToken');
+      
+      // 更彻底的清除cookie策略
+      const domains = [window.location.hostname, '.', window.location.hostname.split('.').slice(-2).join('.')];
+      const paths = ['/', '/login', '/dashboard', '/api'];
+      const dates = [
+        'Thu, 01 Jan 1970 00:00:00 UTC',
+        'Thu, 01 Jan 1970 00:00:00 GMT'
+      ];
+
+      // 清除所有可能的cookie组合
+      domains.forEach(domain => {
+        paths.forEach(path => {
+          dates.forEach(date => {
+            document.cookie = `authToken=; domain=${domain}; path=${path}; expires=${date};`;
+            document.cookie = `authToken=; path=${path}; expires=${date};`;
+          });
+        });
+      });
+
+      // 清除所有用户相关的查询缓存
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
+      queryClient.removeQueries({ queryKey: ['users'] });
+      queryClient.removeQueries({ queryKey: ['user'] });
+      
+      // 强制清除queryClient的缓存
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    },
+    
+    onSettled: () => {
+      // 显示登出成功提示
+      toast.success('登出成功！');
+      
+      // 使用更可靠的重定向方式
+      setTimeout(() => {
+        // 强制刷新页面确保所有状态被重置
+        window.location.href = '/login';
+        // 或者使用 replace
+        // window.location.replace('/login');
+      }, 150);
     },
   });
 };

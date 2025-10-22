@@ -24,7 +24,7 @@ export interface LoginResponse {
 // 用户服务类
 class UserService extends BaseService {
   constructor() {
-    super('/users');
+    super('/');
   }
 
   /**
@@ -45,7 +45,7 @@ class UserService extends BaseService {
    * 获取当前用户信息
    */
   async getCurrentUser(): Promise<User> {
-    return this.get<User>('/profile');
+    return this.get<User>('/auth/me');
   }
 
   /**
@@ -76,7 +76,7 @@ class UserService extends BaseService {
    * 创建用户
    */
   async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    return this.post<User>('', userData);
+    return this.post<User>('/auth/register', userData);
   }
 
   /**

@@ -1,3 +1,4 @@
+"use client"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -13,25 +14,56 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useCreateUser } from "@/hooks/useUserQueryHooks";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner"
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
+  const router = useRouter();
+  const { mutate, isPending } = useCreateUser();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const form = e.target as HTMLFormElement;
+    const name = form.elements.namedItem('name') as HTMLInputElement;
+    const email = form.elements.namedItem('email') as HTMLInputElement;
+    const password = form.elements.namedItem('password') as HTMLInputElement;
+    const confirmPassword = form.elements.namedItem('confirm-password') as HTMLInputElement;
+
+    if (password.value !== confirmPassword.value) {
+      toast.error('密码不匹配');
+      return;
+    }
+
+    const signupData = {
+      username: name.value,
+      email: email.value,
+      password: password.value,
+    };
+    mutate(signupData, {
+      onSuccess: () => {
+        // 存储token
+        router.push('/dashboard');
+      },
+    });
+  }
   return (
     <Card {...props}>
       <CardHeader>
-        <CardTitle>Create an account</CardTitle>
+        <CardTitle>注册账号</CardTitle>
         <CardDescription>
-          Enter your information below to create your account
+          请输入您的信息以创建账号
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form>
+        <form onSubmit={handleSubmit}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="name">Full Name</FieldLabel>
+              <FieldLabel htmlFor="name">用户名</FieldLabel>
               <Input id="name" type="text" placeholder="John Doe" required />
             </Field>
             <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <FieldLabel htmlFor="email">邮箱</FieldLabel>
               <Input
                 id="email"
                 type="email"
@@ -39,32 +71,30 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 required
               />
               <FieldDescription>
-                We&apos;ll use this to contact you. We will not share your email
-                with anyone else.
+                我们将使用此邮箱联系您。我们不会将您的邮箱分享给其他任何人。
               </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <FieldLabel htmlFor="password">密码</FieldLabel>
               <Input id="password" type="password" required />
               <FieldDescription>
-                Must be at least 8 characters long.
+                密码必须至少包含8个字符。
               </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="confirm-password">
-                Confirm Password
+                确认密码
               </FieldLabel>
               <Input id="confirm-password" type="password" required />
-              <FieldDescription>Please confirm your password.</FieldDescription>
+              <FieldDescription>
+                请确认您的密码。
+              </FieldDescription>
             </Field>
             <FieldGroup>
               <Field>
-                <Button type="submit">Create Account</Button>
-                <Button variant="outline" type="button">
-                  Sign up with Google
-                </Button>
+                <Button type="submit">注册账号</Button>
                 <FieldDescription className="px-6 text-center">
-                  Already have an account? <a href="/login">Sign in</a>
+                  已经有账号了？ <a href="/login">登录</a>
                 </FieldDescription>
               </Field>
             </FieldGroup>

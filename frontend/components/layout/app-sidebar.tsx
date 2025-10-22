@@ -2,16 +2,17 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
   BookOpen,
   Bot,
   Command,
   Frame,
-  GalleryVerticalEnd,
   Map,
   PieChart,
   Settings2,
   PlaneTakeoff,
+  User,
+  Mail,
+  SunMoon
 } from "lucide-react"
 
 import { NavMain } from "@/components/layout/nav-main"
@@ -33,21 +34,21 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
+  tools: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      name: "消息",
+      logo: Mail,
+      onClick: () => {console.log("点击了消息")},
     },
     {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
+      name: "设置",
       logo: Command,
-      plan: "Free",
+      onClick: () => {console.log("点击了设置")},
+    },
+    {
+      name: "用户",
+      logo: User,
+      onClick: () => {console.log("点击了用户")},
     },
   ],
   navMain: [
@@ -160,7 +161,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher tools={data.tools} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

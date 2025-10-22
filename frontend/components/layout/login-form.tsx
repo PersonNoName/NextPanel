@@ -16,54 +16,72 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { redirect } from 'next/navigation';
+import { useLogin } from "@/hooks/useUserQueryHooks";
+import { useRouter } from "next/navigation"
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter();
+  const { mutate, isPending } = useLogin();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    redirect('/dashboard')
+
+    const form = e.target as HTMLFormElement;
+    const username = form.elements.namedItem('username') as HTMLInputElement;
+    const password = form.elements.namedItem('password') as HTMLInputElement;
+    const loginData = {
+      username: username.value,
+      password: password.value,
+    };
+    mutate(loginData, {
+      onSuccess: () => {
+        // 存储token
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 500); // 短暂延迟，确保cookie设置完成
+      },
+    });
   }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>登录</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            输入用户名和密码登录
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="username">用户名</FieldLabel>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
+                  id="username"
+                  type="text"
+                  placeholder=""
                   required
                 />
               </Field>
               <Field>
                 <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password">密码</FieldLabel>
                   <a
                     href="#"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                    Forgot your password?
+                    忘记密码？
                   </a>
                 </div>
                 <Input id="password" type="password" required />
               </Field>
               <Field>
-                <Button type="submit" >Login</Button>
-                <Button variant="outline" type="button">
-                  Login with Google
+                <Button type="submit" disabled={isPending} >
+                  {isPending ? "登录中..." : "登录"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="/signup">Sign up</a>
+                  没有账号? <a href="/signup">注册</a>
                 </FieldDescription>
               </Field>
             </FieldGroup>

@@ -5,8 +5,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { Sidebar } from "lucide-react";
-import App from "next/app";
+
 
 interface SidebarProps {
   breadcrumbItems: {
