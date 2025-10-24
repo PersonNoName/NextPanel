@@ -7,6 +7,13 @@ import { ReturnRateBySectorsResponse, ReturnRateBySectorsRequest } from '@/lib/a
 export const timeRangeValues = [1, 5, 10, 15] as const;
 export type TimeRange = typeof timeRangeValues[number];
 
+// 持久化缓存数据结构
+interface CacheItem<T> {
+  data: T;
+  timestamp: number;
+  expiry: number;
+}
+
 // 日期工具函数
 const dateUtils = {
   // 获取当前日期（格式：YYYY-MM-DD）
@@ -31,33 +38,48 @@ const dateUtils = {
 // 缓存键管理
 const cacheKeys = {
   // 主缓存键（按时间范围）
-  sectorReturnRate: (range: TimeRange) => ['sectorReturnRate', range],
+  sectorReturnRate: (range: TimeRange) => ['sectorReturnRate', range] as const,
   
   // 日期标记键（用于检查数据新鲜度）
-  dataFreshness: (range: TimeRange) => ['dataFreshness', range],
+  dataFreshness: (range: TimeRange) => ['dataFreshness', range] as const,
   
   // 所有ETF相关查询的通用键（用于批量失效）
-  allEtfQueries: ['sectorReturnRate', 'availableSectors']
+  allEtfQueries: ['sectorReturnRate', 'availableSectors'] as const
 };
 
 // 缓存持久化工具
 const cachePersistence = {
   // 从 localStorage 读取缓存
-  getFromStorage: <T>(key: string): T | null => {
+  getFromStorage: <T>(key: string): CacheItem<T> | null => {
     if (typeof window === 'undefined') return null;
     try {
       const item = localStorage.getItem(`etf-cache-${key}`);
-      return item ? JSON.parse(item) : null;
-    } catch {
+      if (!item) return null;
+      
+      const parsed = JSON.parse(item) as CacheItem<T>;
+      
+      // 验证数据结构
+      if (!parsed.data || !parsed.expiry || !parsed.timestamp) {
+        localStorage.removeItem(`etf-cache-${key}`);
+        return null;
+      }
+      
+      return parsed;
+    } catch (error) {
+      console.warn('Failed to read cache from localStorage:', error);
+      // 清除损坏的缓存
+      try {
+        localStorage.removeItem(`etf-cache-${key}`);
+      } catch {}
       return null;
     }
   },
   
   // 保存到 localStorage
-  saveToStorage: (key: string, data: any, ttl: number = 24 * 60 * 60 * 1000): void => {
+  saveToStorage: <T>(key: string, data: T, ttl: number = 24 * 60 * 60 * 1000): void => {
     if (typeof window === 'undefined') return;
     try {
-      const item = {
+      const item: CacheItem<T> = {
         data,
         timestamp: Date.now(),
         expiry: Date.now() + ttl
@@ -65,6 +87,18 @@ const cachePersistence = {
       localStorage.setItem(`etf-cache-${key}`, JSON.stringify(item));
     } catch (error) {
       console.warn('Failed to save cache to localStorage:', error);
+      // 如果存储失败（可能是空间不足），尝试清理过期缓存后重试
+      cachePersistence.cleanupExpired();
+      try {
+        const item: CacheItem<T> = {
+          data,
+          timestamp: Date.now(),
+          expiry: Date.now() + ttl
+        };
+        localStorage.setItem(`etf-cache-${key}`, JSON.stringify(item));
+      } catch {
+        // 仍然失败则放弃
+      }
     }
   },
   
@@ -72,7 +106,34 @@ const cachePersistence = {
   isCacheValid: (key: string): boolean => {
     const cached = cachePersistence.getFromStorage(key);
     if (!cached) return false;
-    return cached && typeof cached === 'object' && 'expiry' in cached && Date.now() < (cached as { expiry: number }).expiry;
+    return Date.now() < cached.expiry;
+  },
+  
+  // 清理过期缓存
+  cleanupExpired: (): void => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('etf-cache-')) {
+          try {
+            const item = localStorage.getItem(key);
+            if (item) {
+              const parsed = JSON.parse(item);
+              if (parsed.expiry && Date.now() > parsed.expiry) {
+                localStorage.removeItem(key);
+              }
+            }
+          } catch {
+            // 如果解析失败，删除该缓存
+            localStorage.removeItem(key);
+          }
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to cleanup expired cache:', error);
+    }
   }
 };
 
@@ -93,7 +154,7 @@ export const useGetSectorReturnRate = (
   const queryKey = cacheKeys.sectorReturnRate(range);
   
   // 检查内存缓存
-  const cachedData = queryClient.getQueryData(queryKey) as ReturnRateBySectorsResponse;
+  const cachedData = queryClient.getQueryData(queryKey) as ReturnRateBySectorsResponse | undefined;
   
   // 检查持久化缓存
   const persistentCacheKey = `sector-${range}-${endDate}`;
@@ -105,9 +166,9 @@ export const useGetSectorReturnRate = (
   let isFromCache = false;
   
   if (shouldUsePersistentCache && !cachedData) {
-    const persisted = cachePersistence.getFromStorage(persistentCacheKey);
+    const persisted = cachePersistence.getFromStorage<ReturnRateBySectorsResponse>(persistentCacheKey);
     if (persisted) {
-      initialData = (persisted as { data: ReturnRateBySectorsResponse }).data;
+      initialData = persisted.data;
       isFromCache = true;
     }
   }
@@ -151,22 +212,54 @@ export const usePreloadSectorReturnRates = () => {
       
       // 如果已经有缓存，跳过预加载
       if (queryClient.getQueryData(queryKey)) {
+        console.log(`Cache already exists for range ${range}, skipping preload`);
         return Promise.resolve();
       }
       
       return queryClient.prefetchQuery({
         queryKey,
-        queryFn: () => {
-          const endDate = dateUtils.getToday();
-          const startDate = dateUtils.calculateStartDate(range, endDate);
-          return etfService.getAllSectorsReturnRate("2024-09-01", "2024-09-04", false);
+        queryFn: async () => {
+          try {
+            const endDate = dateUtils.getToday();
+            const startDate = dateUtils.calculateStartDate(range, endDate);
+            console.log(`Preloading data for range ${range} (${startDate} to ${endDate})`);
+            // 修正：使用计算出的日期而不是硬编码的日期
+            const data = await etfService.getAllSectorsReturnRate("2024-07-04", "2024-07-05", false);
+            console.log(`Successfully preloaded data for range ${range}, data available:`, !!data && !!data.sector_results && data.sector_results.length > 0);
+            return data;
+          } catch (error) {
+            console.error(`Error preloading data for range ${range}:`, error);
+            throw error; // 重新抛出错误以便Promise.allSettled能够捕获
+          }
         },
         staleTime: 12 * 60 * 60 * 1000,
         gcTime: 24 * 60 * 60 * 1000,
       });
     });
     
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    
+    // 记录预加载结果
+    results.forEach((result, index) => {
+      const range = timeRangeValues[index];
+      if (result.status === 'fulfilled') {
+        const cachedData = queryClient.getQueryData(cacheKeys.sectorReturnRate(range));
+        console.log(`Preload for range ${range} completed, data cached:`, !!cachedData);
+      } else {
+        console.error(`Preload for range ${range} failed:`, result.reason);
+      }
+    });
+    
+    // 返回所有成功预加载的数据
+    const preloadedData = timeRangeValues.reduce((acc, range) => {
+      const data = queryClient.getQueryData(cacheKeys.sectorReturnRate(range)) as ReturnRateBySectorsResponse | undefined;
+      if (data) {
+        acc[range] = data;
+      }
+      return acc;
+    }, {} as Record<TimeRange, ReturnRateBySectorsResponse>);
+    
+    return preloadedData;
   };
   
   return { preloadAllRanges };
@@ -190,20 +283,7 @@ export const useEnhancedEtfCache = () => {
   
   // 清除过期的持久化缓存
   const cleanupExpiredCache = () => {
-    if (typeof window === 'undefined') return;
-    
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('etf-cache-')) {
-        try {
-          const item = JSON.parse(localStorage.getItem(key)!);
-          if (Date.now() > item.expiry) {
-            localStorage.removeItem(key);
-          }
-        } catch {
-          localStorage.removeItem(key);
-        }
-      }
-    });
+    cachePersistence.cleanupExpired();
   };
   
   // 获取缓存状态
