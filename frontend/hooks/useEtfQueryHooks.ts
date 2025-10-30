@@ -1,312 +1,244 @@
-"use client"
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+"use client";
+
+import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
-import etfService from '@/lib/api/etfService';
-import { ReturnRateBySectorsResponse, ReturnRateBySectorsRequest } from '@/lib/api/etfService';
+import etfService, { ReturnRateBySectorsResponse } from '@/lib/api/etfService';
 
+// ==================== 类型定义 ====================
 export const timeRangeValues = [1, 5, 10, 15] as const;
-export type TimeRange = typeof timeRangeValues[number];
+export type TimeRange = (typeof timeRangeValues)[number];
 
-// 持久化缓存数据结构
-interface CacheItem<T> {
-  data: T;
-  timestamp: number;
-  expiry: number;
+interface DateRange {
+  startDate: string;
+  endDate: string;
 }
 
-// 日期工具函数
+// ==================== 日期工具 ====================
 const dateUtils = {
-  // 获取当前日期（格式：YYYY-MM-DD）
   getToday: (): string => {
     return new Date().toISOString().split('T')[0];
   },
-  
-  // 根据时间范围计算开始日期
-  calculateStartDate: (range: TimeRange, baseDate?: string): string => {
-    const endDate = baseDate ? new Date(baseDate) : new Date();
+
+  calculateDateRange: (days: TimeRange): DateRange => {
+    const endDate = new Date();
     const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - range);
-    return startDate.toISOString().split('T')[0];
-  },
-  
-  // 检查日期是否是今天
-  isToday: (date: string): boolean => {
-    return date === dateUtils.getToday();
-  }
-};
-
-// 缓存键管理
-const cacheKeys = {
-  // 主缓存键（按时间范围）
-  sectorReturnRate: (range: TimeRange) => ['sectorReturnRate', range] as const,
-  
-  // 日期标记键（用于检查数据新鲜度）
-  dataFreshness: (range: TimeRange) => ['dataFreshness', range] as const,
-  
-  // 所有ETF相关查询的通用键（用于批量失效）
-  allEtfQueries: ['sectorReturnRate', 'availableSectors'] as const
-};
-
-// 缓存持久化工具
-const cachePersistence = {
-  // 从 localStorage 读取缓存
-  getFromStorage: <T>(key: string): CacheItem<T> | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const item = localStorage.getItem(`etf-cache-${key}`);
-      if (!item) return null;
-      
-      const parsed = JSON.parse(item) as CacheItem<T>;
-      
-      // 验证数据结构
-      if (!parsed.data || !parsed.expiry || !parsed.timestamp) {
-        localStorage.removeItem(`etf-cache-${key}`);
-        return null;
-      }
-      
-      return parsed;
-    } catch (error) {
-      console.warn('Failed to read cache from localStorage:', error);
-      // 清除损坏的缓存
-      try {
-        localStorage.removeItem(`etf-cache-${key}`);
-      } catch {}
-      return null;
-    }
-  },
-  
-  // 保存到 localStorage
-  saveToStorage: <T>(key: string, data: T, ttl: number = 24 * 60 * 60 * 1000): void => {
-    if (typeof window === 'undefined') return;
-    try {
-      const item: CacheItem<T> = {
-        data,
-        timestamp: Date.now(),
-        expiry: Date.now() + ttl
-      };
-      localStorage.setItem(`etf-cache-${key}`, JSON.stringify(item));
-    } catch (error) {
-      console.warn('Failed to save cache to localStorage:', error);
-      // 如果存储失败（可能是空间不足），尝试清理过期缓存后重试
-      cachePersistence.cleanupExpired();
-      try {
-        const item: CacheItem<T> = {
-          data,
-          timestamp: Date.now(),
-          expiry: Date.now() + ttl
-        };
-        localStorage.setItem(`etf-cache-${key}`, JSON.stringify(item));
-      } catch {
-        // 仍然失败则放弃
-      }
-    }
-  },
-  
-  // 检查缓存是否有效
-  isCacheValid: (key: string): boolean => {
-    const cached = cachePersistence.getFromStorage(key);
-    if (!cached) return false;
-    return Date.now() < cached.expiry;
-  },
-  
-  // 清理过期缓存
-  cleanupExpired: (): void => {
-    if (typeof window === 'undefined') return;
+    startDate.setDate(startDate.getDate() - days);
     
-    try {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('etf-cache-')) {
-          try {
-            const item = localStorage.getItem(key);
-            if (item) {
-              const parsed = JSON.parse(item);
-              if (parsed.expiry && Date.now() > parsed.expiry) {
-                localStorage.removeItem(key);
-              }
-            }
-          } catch {
-            // 如果解析失败，删除该缓存
-            localStorage.removeItem(key);
-          }
-        }
-      });
-    } catch (error) {
-      console.warn('Failed to cleanup expired cache:', error);
+    // return {
+    //   startDate: startDate.toISOString().split('T')[0],
+    //   endDate: endDate.toISOString().split('T')[0],
+    // };
+    return {
+      startDate: '2024-07-01',
+      endDate: '2024-07-04',
     }
-  }
+  },
 };
 
-// 主查询 Hook - 智能缓存策略
-export const useGetSectorReturnRate = (
+// ==================== 查询键工厂 ====================
+export const sectorReturnRateKeys = {
+  all: ['sectorReturnRate'] as const,
+  byRange: (range: TimeRange, dateRange: DateRange) => 
+    [...sectorReturnRateKeys.all, range, dateRange] as const,
+};
+
+// ==================== 主 Hook ====================
+/**
+ * 获取指定时间范围的类别收益率数据
+ * 
+ * @param range - 时间范围（天数）
+ * @param options - 查询配置选项
+ * @returns 查询结果
+ */
+export const useSectorReturnRate = (
   range: TimeRange,
   options?: {
-    forceRefresh?: boolean;
-    usePersistentCache?: boolean;
+    enabled?: boolean;
+    refetchOnWindowFocus?: boolean;
   }
-): UseQueryResult<ReturnRateBySectorsResponse> & { 
-  isFromCache: boolean 
-} => {
-  const { forceRefresh = false, usePersistentCache = true } = options || {};
-  
-  const endDate = dateUtils.getToday();
-  const startDate = dateUtils.calculateStartDate(range, endDate);
-  const queryKey = cacheKeys.sectorReturnRate(range);
-  
-  // 检查内存缓存
-  const cachedData = queryClient.getQueryData(queryKey) as ReturnRateBySectorsResponse | undefined;
-  
-  // 检查持久化缓存
-  const persistentCacheKey = `sector-${range}-${endDate}`;
-  const shouldUsePersistentCache = usePersistentCache && 
-    !forceRefresh && 
-    cachePersistence.isCacheValid(persistentCacheKey);
-  
-  let initialData: ReturnRateBySectorsResponse | undefined;
-  let isFromCache = false;
-  
-  if (shouldUsePersistentCache && !cachedData) {
-    const persisted = cachePersistence.getFromStorage<ReturnRateBySectorsResponse>(persistentCacheKey);
-    if (persisted) {
-      initialData = persisted.data;
-      isFromCache = true;
-    }
-  }
-  
-  const query = useQuery({
-    queryKey,
+): UseQueryResult<ReturnRateBySectorsResponse> => {
+  const dateRange = dateUtils.calculateDateRange(range);
+  const { enabled = true, refetchOnWindowFocus = false } = options || {};
+
+  return useQuery({
+    queryKey: sectorReturnRateKeys.byRange(range, dateRange),
     queryFn: async () => {
-      const data = await etfService.getAllSectorsReturnRate(startDate, endDate, false);
-      
-      // 成功获取数据后，保存到持久化缓存（当天有效）
-      if (usePersistentCache) {
-        const ttl = 24 * 60 * 60 * 1000; // 24小时
-        cachePersistence.saveToStorage(persistentCacheKey, data, ttl);
-      }
-      
+      const data = await etfService.getAllSectorsReturnRate(
+        dateRange.startDate,
+        dateRange.endDate,
+        false
+      );
       return data;
     },
-    staleTime: 12 * 60 * 60 * 1000, // 12小时 - 当天数据不会过时
-    gcTime: 24 * 60 * 60 * 1000,    // 24小时 - 缓存保留一天
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnMount: forceRefresh,
-    enabled: !initialData || forceRefresh, // 如果有初始数据且不需要强制刷新，则不立即执行
-    initialData: initialData,
+    staleTime: 1000 * 60 * 60 * 12, // 12小时内认为数据新鲜
+    gcTime: 1000 * 60 * 60 * 24, // 24小时后从缓存中移除
+    refetchOnWindowFocus,
+    refetchOnMount: false, // 避免组件重新挂载时重复请求
+    enabled,
+  });
+};
+
+// ==================== 批量查询 Hook ====================
+/**
+ * 同时获取多个时间范围的收益率数据
+ * 
+ * @param ranges - 要查询的时间范围数组
+ * @returns 查询结果数组
+ */
+export const useSectorReturnRates = (
+  ranges: readonly TimeRange[] = timeRangeValues
+) => {
+  const queries = ranges.map((range) => {
+    const dateRange = dateUtils.calculateDateRange(range);
     
-    // 智能重试策略
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    return {
+      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+      queryFn: async () => {
+        const data = await etfService.getAllSectorsReturnRate(
+          dateRange.startDate,
+          dateRange.endDate,
+          false
+        );
+        return data;
+      },
+      staleTime: 1000 * 60 * 60 * 12,
+      gcTime: 1000 * 60 * 60 * 24,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    };
   });
 
-  return {
-    ...query,
-    isFromCache: isFromCache && !query.isFetching
-  };
+  return useQueries({ queries });
 };
 
-// 批量预加载 Hook
-export const usePreloadSectorReturnRates = () => {
-  const preloadAllRanges = async () => {
-    const promises = timeRangeValues.map(range => {
-      const queryKey = cacheKeys.sectorReturnRate(range);
-      
-      // 如果已经有缓存，跳过预加载
-      if (queryClient.getQueryData(queryKey)) {
-        console.log(`Cache already exists for range ${range}, skipping preload`);
-        return Promise.resolve();
-      }
-      
-      return queryClient.prefetchQuery({
-        queryKey,
-        queryFn: async () => {
-          try {
-            const endDate = dateUtils.getToday();
-            const startDate = dateUtils.calculateStartDate(range, endDate);
-            console.log(`Preloading data for range ${range} (${startDate} to ${endDate})`);
-            // 修正：使用计算出的日期而不是硬编码的日期
-            const data = await etfService.getAllSectorsReturnRate("2024-07-04", "2024-07-05", false);
-            console.log(`Successfully preloaded data for range ${range}, data available:`, !!data && !!data.sector_results && data.sector_results.length > 0);
-            return data;
-          } catch (error) {
-            console.error(`Error preloading data for range ${range}:`, error);
-            throw error; // 重新抛出错误以便Promise.allSettled能够捕获
-          }
-        },
-        staleTime: 12 * 60 * 60 * 1000,
-        gcTime: 24 * 60 * 60 * 1000,
-      });
+// ==================== 预加载工具 ====================
+/**
+ * 预加载所有时间范围的数据
+ * 适合在应用初始化或路由切换时使用
+ */
+export const prefetchAllSectorReturnRates = async () => {
+  const promises = timeRangeValues.map((range) => {
+    const dateRange = dateUtils.calculateDateRange(range);
+    const queryKey = sectorReturnRateKeys.byRange(range, dateRange);
+    
+    // 检查是否已有缓存
+    const existingData = queryClient.getQueryData(queryKey);
+    if (existingData) {
+      return Promise.resolve(existingData);
+    }
+
+    return queryClient.prefetchQuery({
+      queryKey,
+      queryFn: async () => {
+        const data = await etfService.getAllSectorsReturnRate(
+          dateRange.startDate,
+          dateRange.endDate,
+          false
+        );
+        return data;
+      },
+      staleTime: 1000 * 60 * 60 * 12,
+      gcTime: 1000 * 60 * 60 * 24,
     });
-    
-    const results = await Promise.allSettled(promises);
-    
-    // 记录预加载结果
-    results.forEach((result, index) => {
-      const range = timeRangeValues[index];
-      if (result.status === 'fulfilled') {
-        const cachedData = queryClient.getQueryData(cacheKeys.sectorReturnRate(range));
-        console.log(`Preload for range ${range} completed, data cached:`, !!cachedData);
-      } else {
-        console.error(`Preload for range ${range} failed:`, result.reason);
-      }
-    });
-    
-    // 返回所有成功预加载的数据
-    const preloadedData = timeRangeValues.reduce((acc, range) => {
-      const data = queryClient.getQueryData(cacheKeys.sectorReturnRate(range)) as ReturnRateBySectorsResponse | undefined;
-      if (data) {
-        acc[range] = data;
-      }
-      return acc;
-    }, {} as Record<TimeRange, ReturnRateBySectorsResponse>);
-    
-    return preloadedData;
-  };
-  
-  return { preloadAllRanges };
+  });
+
+  return Promise.allSettled(promises);
 };
 
-// 增强的缓存管理
-export const useEnhancedEtfCache = () => {
-  const invalidateByRange = (range: TimeRange) => {
-    queryClient.invalidateQueries({ 
-      queryKey: cacheKeys.sectorReturnRate(range) 
+// ==================== 缓存管理工具 ====================
+/**
+ * 缓存管理 Hook
+ */
+export const useSectorReturnRateCache = () => {
+  /**
+   * 使指定时间范围的缓存失效
+   */
+  const invalidateRange = async (range: TimeRange) => {
+    const dateRange = dateUtils.calculateDateRange(range);
+    await queryClient.invalidateQueries({
+      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
     });
   };
-  
-  const invalidateAllRanges = () => {
-    timeRangeValues.forEach(range => {
-      queryClient.invalidateQueries({ 
-        queryKey: cacheKeys.sectorReturnRate(range) 
-      });
+
+  /**
+   * 使所有时间范围的缓存失效
+   */
+  const invalidateAll = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: sectorReturnRateKeys.all,
     });
   };
-  
-  // 清除过期的持久化缓存
-  const cleanupExpiredCache = () => {
-    cachePersistence.cleanupExpired();
+
+  /**
+   * 清除指定时间范围的缓存
+   */
+  const removeRange = (range: TimeRange) => {
+    const dateRange = dateUtils.calculateDateRange(range);
+    queryClient.removeQueries({
+      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+    });
   };
-  
-  // 获取缓存状态
+
+  /**
+   * 清除所有缓存
+   */
+  const removeAll = () => {
+    queryClient.removeQueries({
+      queryKey: sectorReturnRateKeys.all,
+    });
+  };
+
+  /**
+   * 获取所有范围的缓存状态
+   */
   const getCacheStatus = () => {
-    return timeRangeValues.map(range => {
-      const queryKey = cacheKeys.sectorReturnRate(range);
-      const memoryCache = queryClient.getQueryData(queryKey);
-      const persistentCacheKey = `sector-${range}-${dateUtils.getToday()}`;
-      const persistentCache = cachePersistence.isCacheValid(persistentCacheKey);
-      
+    return timeRangeValues.map((range) => {
+      const dateRange = dateUtils.calculateDateRange(range);
+      const queryKey = sectorReturnRateKeys.byRange(range, dateRange);
+      const state = queryClient.getQueryState(queryKey);
+
       return {
         range,
-        memoryCache: !!memoryCache,
-        persistentCache,
-        lastUpdated: memoryCache ? 'memory' : persistentCache ? 'storage' : 'none'
+        dateRange,
+        isCached: !!state?.data,
+        isStale: state?.isInvalidated ?? true,
+        dataUpdatedAt: state?.dataUpdatedAt,
+        lastFetchedAt: state?.dataUpdatedAt 
+          ? new Date(state.dataUpdatedAt).toLocaleString()
+          : null,
       };
     });
   };
 
-  return {
-    invalidateByRange,
-    invalidateAllRanges,
-    cleanupExpiredCache,
-    getCacheStatus
+  /**
+   * 手动设置缓存数据（用于服务端预取等场景）
+   */
+  const setQueryData = (range: TimeRange, data: ReturnRateBySectorsResponse) => {
+    const dateRange = dateUtils.calculateDateRange(range);
+    queryClient.setQueryData(
+      sectorReturnRateKeys.byRange(range, dateRange),
+      data
+    );
   };
+
+  return {
+    invalidateRange,
+    invalidateAll,
+    removeRange,
+    removeAll,
+    getCacheStatus,
+    setQueryData,
+  };
+};
+
+// ==================== 便捷 Hook ====================
+/**
+ * 预加载 Hook - 用于组件中触发预加载
+ */
+export const usePreloadSectorReturnRates = () => {
+  const preload = async () => {
+    return prefetchAllSectorReturnRates();
+  };
+
+  return { preload };
 };

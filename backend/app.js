@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const authRoutes = require('./routes/authRoutes');
 const etfRoutes = require('./routes/etfRoutes');
+const dateRoutes = require('./routes/dateRoutes');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/config');
 const app = express();
@@ -51,6 +52,8 @@ const authLimiter = rateLimit({
 // app.use('/api/', limiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/etf', limiter, etfRoutes);
+app.use('/api/trading-days',limiter, dateRoutes);
+
 
 // 404 错误处理（简化版）
 app.use(function(req, res, next) {
