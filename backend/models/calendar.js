@@ -6,7 +6,8 @@ const Calendar = sequelize.define('Calendar', {
   Day: {
     type: DataTypes.STRING(8),
     allowNull: true,
-    comment: '日期，格式为YYYYMMDD'
+    comment: '日期，格式为YYYYMMDD',
+    primaryKey: true
   },
   // 是否为交易日 (1: 是, 0: 否)
   IsTradingDay: {
@@ -42,7 +43,8 @@ const Calendar = sequelize.define('Calendar', {
   tableName: 'calendar', // 指定数据库中的表名
   timestamps: false, // 不需要自动添加 createdAt 和 updatedAt 字段
   charset: 'utf8mb4',
-  collate: 'utf8mb4_general_ci'
+  collate: 'utf8mb4_general_ci',
+  id: false
 });
 
 module.exports = Calendar;
