@@ -16,35 +16,30 @@ const getPreviousTradingDays = async (req, res) => {
       return errorResponse(res, 400, 'Missing required parameters: date and n');
     }
 
-    // 验证日期格式
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
       return errorResponse(res, 400, 'Invalid date format, should be YYYY-MM-DD');
     }
 
-    // 将日期转换为YYYYMMDD格式
     const targetDate = date.replace(/-/g, '');
-    
-    // 验证n为正整数
     const daysCount = parseInt(n);
+    
     if (isNaN(daysCount) || daysCount <= 0) {
       return errorResponse(res, 400, 'Parameter n must be a positive integer');
     }
 
     // 查找目标日期在日历中的记录
-    let targetDayRecord = await Calendar.findOne({
+    let endTradingDay = await Calendar.findOne({
       where: { Day: targetDate }
     });
 
-    if (!targetDayRecord) {
+    if (!endTradingDay) {
       return errorResponse(res, 404, `Date ${date} not found in calendar`);
     }
 
-    let startTradingDay = targetDayRecord;
-
-    // 如果目标日期不是交易日，向前查找最近的交易日
-    if (targetDayRecord.IsTradingDay === 0) {
-      const previousTradingDay = await Calendar.findOne({
+    // 如果目标日期不是交易日，向前查找最近的交易日作为结束日期
+    if (endTradingDay.IsTradingDay === 0) {
+      endTradingDay = await Calendar.findOne({
         where: {
           Day: { [Op.lt]: targetDate },
           IsTradingDay: 1
@@ -52,47 +47,38 @@ const getPreviousTradingDays = async (req, res) => {
         order: [['Day', 'DESC']]
       });
 
-      if (!previousTradingDay) {
-        return errorResponse(res, 404, 'No previous trading day found');
+      if (!endTradingDay) {
+        return errorResponse(res, 404, 'No trading day found');
       }
-
-      startTradingDay = previousTradingDay;
     }
 
-    // 查找前n-1个交易日（从起始交易日的前一天开始）
-    const previousTradingDays = await Calendar.findAll({
+    // 查找包含结束日期在内的n个交易日
+    const tradingDays = await Calendar.findAll({
       where: {
-        Day: { [Op.lt]: startTradingDay.Day },
+        Day: { [Op.lte]: endTradingDay.Day },  // 包含结束日期
         IsTradingDay: 1
       },
       order: [['Day', 'DESC']],
-      limit: daysCount - 1
+      limit: daysCount
     });
 
-    // 组合所有交易日：起始交易日 + 前n-1个交易日
-    const allTradingDays = [startTradingDay, ...previousTradingDays];
-    
     // 如果交易日数量不足
-    if (allTradingDays.length < daysCount) {
-      return errorResponse(res, 404, `Not enough trading days found. Required: ${daysCount}, Found: ${allTradingDays.length}`);
+    if (tradingDays.length < daysCount) {
+      return errorResponse(res, 404, `Not enough trading days found. Required: ${daysCount}, Found: ${tradingDays.length}`);
     }
 
     // 按时间顺序排序（从早到晚）
-    allTradingDays.sort((a, b) => a.Day.localeCompare(b.Day));
+    tradingDays.sort((a, b) => a.Day.localeCompare(b.Day));
 
-    // 提取需要的两个交易日
-    const startDay = allTradingDays[0]; // 最早的交易日
-    const endDay = allTradingDays[allTradingDays.length - 1]; // 最晚的交易日（起始交易日）
-
-    // 格式化日期为YYYY-MM-DD
     const formatDate = (dateStr) => {
       return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
     };
 
     const result = {
-      startDate: formatDate(startDay.Day),
-      endDate: formatDate(endDay.Day),
-      tradingDaysCount: allTradingDays.length,
+      startDate: formatDate(tradingDays[0].Day),
+      endDate: formatDate(tradingDays[tradingDays.length - 1].Day),
+      tradingDaysCount: tradingDays.length,
+      tradingDays: tradingDays.map(day => formatDate(day.Day)), // 可选：返回所有交易日日期
       originalInput: {
         date: date,
         n: daysCount

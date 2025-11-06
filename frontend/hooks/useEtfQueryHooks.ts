@@ -3,7 +3,7 @@
 import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
 import etfService, { ReturnRateBySectorsResponse } from '@/lib/api/etfService';
-
+import DateService from '@/lib/api/dateService';
 // ==================== 类型定义 ====================
 export const timeRangeValues = [1, 5, 10, 15] as const;
 export type TimeRange = (typeof timeRangeValues)[number];
@@ -19,18 +19,21 @@ const dateUtils = {
     return new Date().toISOString().split('T')[0];
   },
 
-  calculateDateRange: (days: TimeRange): DateRange => {
-    const endDate = new Date();
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - days);
+  calculateDateRange: async (days: TimeRange): Promise<DateRange> => {
+    const data = await DateService.getTradingDays(
+      new Date().toISOString().split('T')[0],
+      days
+    )
+    const start_date = data.startDate;
+    const end_date = data.endDate
     
     // return {
     //   startDate: startDate.toISOString().split('T')[0],
     //   endDate: endDate.toISOString().split('T')[0],
     // };
     return {
-      startDate: '2024-07-01',
-      endDate: '2024-07-04',
+      startDate: start_date,
+      endDate: end_date,
     }
   },
 };
@@ -38,8 +41,8 @@ const dateUtils = {
 // ==================== 查询键工厂 ====================
 export const sectorReturnRateKeys = {
   all: ['sectorReturnRate'] as const,
-  byRange: (range: TimeRange, dateRange: DateRange) => 
-    [...sectorReturnRateKeys.all, range, dateRange] as const,
+  byRange: (range: TimeRange) => 
+    [...sectorReturnRateKeys.all, range] as const,
 };
 
 // ==================== 主 Hook ====================
@@ -57,12 +60,12 @@ export const useSectorReturnRate = (
     refetchOnWindowFocus?: boolean;
   }
 ): UseQueryResult<ReturnRateBySectorsResponse> => {
-  const dateRange = dateUtils.calculateDateRange(range);
   const { enabled = true, refetchOnWindowFocus = false } = options || {};
 
   return useQuery({
-    queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+    queryKey: sectorReturnRateKeys.byRange(range),
     queryFn: async () => {
+      const dateRange = await dateUtils.calculateDateRange(range);
       const data = await etfService.getAllSectorsReturnRate(
         dateRange.startDate,
         dateRange.endDate,
@@ -88,12 +91,12 @@ export const useSectorReturnRate = (
 export const useSectorReturnRates = (
   ranges: readonly TimeRange[] = timeRangeValues
 ) => {
-  const queries = ranges.map((range) => {
-    const dateRange = dateUtils.calculateDateRange(range);
-    
+  const queries = ranges.map((range) => {    
     return {
-      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+      queryKey: sectorReturnRateKeys.byRange(range),
       queryFn: async () => {
+        const dateRange = await dateUtils.calculateDateRange(range);
+
         const data = await etfService.getAllSectorsReturnRate(
           dateRange.startDate,
           dateRange.endDate,
@@ -118,8 +121,7 @@ export const useSectorReturnRates = (
  */
 export const prefetchAllSectorReturnRates = async () => {
   const promises = timeRangeValues.map((range) => {
-    const dateRange = dateUtils.calculateDateRange(range);
-    const queryKey = sectorReturnRateKeys.byRange(range, dateRange);
+    const queryKey = sectorReturnRateKeys.byRange(range);
     
     // 检查是否已有缓存
     const existingData = queryClient.getQueryData(queryKey);
@@ -130,6 +132,8 @@ export const prefetchAllSectorReturnRates = async () => {
     return queryClient.prefetchQuery({
       queryKey,
       queryFn: async () => {
+        const dateRange = await dateUtils.calculateDateRange(range);
+
         const data = await etfService.getAllSectorsReturnRate(
           dateRange.startDate,
           dateRange.endDate,
@@ -154,9 +158,8 @@ export const useSectorReturnRateCache = () => {
    * 使指定时间范围的缓存失效
    */
   const invalidateRange = async (range: TimeRange) => {
-    const dateRange = dateUtils.calculateDateRange(range);
     await queryClient.invalidateQueries({
-      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+      queryKey: sectorReturnRateKeys.byRange(range),
     });
   };
 
@@ -173,9 +176,8 @@ export const useSectorReturnRateCache = () => {
    * 清除指定时间范围的缓存
    */
   const removeRange = (range: TimeRange) => {
-    const dateRange = dateUtils.calculateDateRange(range);
     queryClient.removeQueries({
-      queryKey: sectorReturnRateKeys.byRange(range, dateRange),
+      queryKey: sectorReturnRateKeys.byRange(range),
     });
   };
 
@@ -193,13 +195,11 @@ export const useSectorReturnRateCache = () => {
    */
   const getCacheStatus = () => {
     return timeRangeValues.map((range) => {
-      const dateRange = dateUtils.calculateDateRange(range);
-      const queryKey = sectorReturnRateKeys.byRange(range, dateRange);
+      const queryKey = sectorReturnRateKeys.byRange(range);
       const state = queryClient.getQueryState(queryKey);
 
       return {
         range,
-        dateRange,
         isCached: !!state?.data,
         isStale: state?.isInvalidated ?? true,
         dataUpdatedAt: state?.dataUpdatedAt,
@@ -214,9 +214,8 @@ export const useSectorReturnRateCache = () => {
    * 手动设置缓存数据（用于服务端预取等场景）
    */
   const setQueryData = (range: TimeRange, data: ReturnRateBySectorsResponse) => {
-    const dateRange = dateUtils.calculateDateRange(range);
     queryClient.setQueryData(
-      sectorReturnRateKeys.byRange(range, dateRange),
+      sectorReturnRateKeys.byRange(range),
       data
     );
   };

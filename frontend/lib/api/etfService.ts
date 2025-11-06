@@ -73,7 +73,6 @@ export interface AvailableSectorsResponse {
     etf_count: number;
   }>;
 }
-
 // ETF服务类
 class EtfService extends BaseService {
   constructor() {
@@ -113,6 +112,8 @@ class EtfService extends BaseService {
     };
     return this.getReturnRateBySectors(requestData);
   }
+
+
 }
 
 // 导出单例
