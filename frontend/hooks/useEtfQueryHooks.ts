@@ -5,7 +5,7 @@ import queryClient from '@/lib/query/queryClient';
 import etfService, { ReturnRateBySectorsResponse } from '@/lib/api/etfService';
 import DateService from '@/lib/api/dateService';
 // ==================== 类型定义 ====================
-export const timeRangeValues = [1, 5, 10, 15] as const;
+export const timeRangeValues = [3, 5, 10, 15] as const;
 export type TimeRange = (typeof timeRangeValues)[number];
 
 interface DateRange {
@@ -21,16 +21,13 @@ const dateUtils = {
 
   calculateDateRange: async (days: TimeRange): Promise<DateRange> => {
     const data = await DateService.getTradingDays(
-      new Date().toISOString().split('T')[0],
+      // new Date().toISOString().split('T')[0],
+      '2024-07-15',
       days
     )
     const start_date = data.startDate;
     const end_date = data.endDate
     
-    // return {
-    //   startDate: startDate.toISOString().split('T')[0],
-    //   endDate: endDate.toISOString().split('T')[0],
-    // };
     return {
       startDate: start_date,
       endDate: end_date,
@@ -228,6 +225,10 @@ export const useSectorReturnRateCache = () => {
     getCacheStatus,
     setQueryData,
   };
+};
+export const getAvailableSectors = async () => {
+  const data = await etfService.getAvailableSectors();
+  return data;
 };
 
 // ==================== 便捷 Hook ====================

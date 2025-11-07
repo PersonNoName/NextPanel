@@ -1,7 +1,7 @@
 "use client";
 import NegativeBarChartComponent from "@/components/charts/negative-bar"
 import { DataTable } from "@/components/data-table"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { GeneralSelect } from "@/components/general-select";
 import { CustomDialog } from "@/components/pop-box"
 import { CustomSectionTable } from "@/components/tables/custom-section-table"
@@ -10,7 +10,8 @@ import { CirclePlus,SquarePlus } from "lucide-react";
 import { MultiSelectPopover } from "@/components/multi-select-popover";
 import LineChartComponent  from "@/components/charts/line-chart";
 import { timeRangeValues } from "@/hooks/useEtfQueryHooks";
-// import { useGetSectorReturnRate, usePreloadSectorReturnRates } from '@/hooks/useEtfQueryHooks';
+import {usePreloadSectorReturnRates, useSectorReturnRate}  from "@/hooks/useEtfQueryHooks"
+import {getAvailableSectors} from "@/hooks/useEtfQueryHooks"
 
 // 从基础数据派生出TimeRange类型
 export type TimeRange = typeof timeRangeValues[number];
@@ -33,26 +34,51 @@ const testOptions =   [
   { id: "option-3", label: "电力", value: "option3" },
   { id: "option-4", label: "银行", value: "option4" },
 ];
+
+// 定义目标格式的类型（可选，增强类型安全）
+type OptionType = {
+  id: string;
+  label: string;
+  value: string;
+};
+
 export default function OverviewPage() {
   const [open, setOpen] = useState(false)
   const [timeSelected, setTimeSelected] = useState<TimeRange>(5);
   const [countSelected, setCountSelected] = useState("10")
+  const { preload } = usePreloadSectorReturnRates()
+  const [availableSectorOptions, setAvailableSectorOptions] = useState<OptionType[]>([]);
 
-    // 使用智能缓存 Hook
-  // const { 
-  //   data, 
-  //   isLoading, 
-  //   error,
-  //   isFromCache 
-  // } = useGetSectorReturnRate(timeSelected);
-  
-  // 预加载所有时间范围的数据
-  // const { preloadAllRanges } = usePreloadSectorReturnRates();
+  useEffect(() => {
+    preload()
+    const getConvertedOptions = async () => {
+      // 1. 获取原始数据
+      const sectorsData = await getAvailableSectors();
+      // 2. 一步转换为目标格式
+      const convertedOptions = sectorsData.sectors.map((item, index) => ({
+        id: `option-${index + 1}`, // 索引+1生成唯一id
+        label: item.sector, // label 取行业名称
+        value: item.sector // value 与 label 一致
+      }));
+      // 3. 赋值给 Options
+      setAvailableSectorOptions(convertedOptions);
+    };
 
-  // useEffect(() => {
-  //   // 组件挂载时预加载所有数据
-  //   preloadAllRanges();
-  // }, []);
+    getConvertedOptions();
+  }, [])
+
+  const { data, isLoading, error } = useSectorReturnRate(timeSelected)
+
+  const topNResults = useMemo(() => {
+    // 数据未就绪时返回空数组
+    if (isLoading || error || !data?.sector_results) return [];
+    
+    // 深拷贝数组避免修改原数据，再排序、截取
+    return [...data.sector_results]
+      .sort((a, b) => b.avg_return_rate - a.avg_return_rate)
+      .slice(0, parseInt(countSelected, 10));
+  }, [data, isLoading, error, countSelected]);
+  console.log(availableSectorOptions)
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -106,37 +132,17 @@ export default function OverviewPage() {
             <DataTable 
               showHeader={false} 
               columns={{ 
-                名称: '名称', 
-                涨跌幅: '涨跌幅',
+                sector : '名称', 
+                avg_return_rate_percent: '涨跌幅',
               }}
-              data={[
-                { 名称: '煤炭', 涨跌幅: '+2.34%' },
-                { 名称: '中药', 涨跌幅: '+1.24%' },
-                { 名称: '电力', 涨跌幅: '+0.98%' },
-                { 名称: '银行', 涨跌幅: '+0.76%' },
-                { 名称: '保险', 涨跌幅: '+0.64%' },
-                { 名称: '证券', 涨跌幅: '+0.54%' },
-                { 名称: '房地产', 涨跌幅: '+0.32%' },
-                { 名称: '互联网', 涨跌幅: '+0.12%' },
-                { 名称: '白酒', 涨跌幅: '-0.23%' },
-                { 名称: '食品', 涨跌幅: '-0.12%' },
-                { 名称: '石油石化', 涨跌幅: '-0.45%' },
-                { 名称: '中证200', 涨跌幅: '-0.67%' },
-                { 名称: '证券', 涨跌幅: '+0.54%' },
-                { 名称: '房地产', 涨跌幅: '+0.32%' },
-                { 名称: '互联网', 涨跌幅: '+0.12%' },
-                { 名称: '白酒', 涨跌幅: '-0.23%' },
-                { 名称: '食品', 涨跌幅: '-0.12%' },
-                { 名称: '石油石化', 涨跌幅: '-0.45%' },
-                { 名称: '中证200', 涨跌幅: '-0.67%' }
-              ]}
+              data={topNResults}
               columnFormatters={{
-                涨跌幅: formatChangeRate
+                avg_return_rate_percent: formatChangeRate
               }}
               buttons={{
-                名称: [
+                sector: [
                   {
-                    label: (row) => row.名称,
+                    label: (row) => row.sector,
                     onClick: handleNameClick,
                     variant: 'outline',
                     className: 'px-2 py-1 text-xs shadow-sm'
@@ -163,7 +169,7 @@ export default function OverviewPage() {
             <p className="text-lg font-bold mb-2 flex justify-start mr-2">各板块涨跌幅</p>
             
             <MultiSelectPopover 
-              options={testOptions} 
+              options={availableSectorOptions} 
               customButton={
                 <Button variant="ghost" size="icon" className="ml-auto">
                   <SquarePlus className="hover:text-primary transition-all duration-200"/>
