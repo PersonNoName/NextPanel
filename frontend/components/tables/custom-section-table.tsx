@@ -26,17 +26,16 @@ export function CustomSectionTable({ className }: { className?: string }) {
     <DataTable 
       showHeader={false} 
       columns={{ 
-        名称: '名称', 
-        涨跌幅: '涨跌幅',
+        sector: '名称', 
       }}
       data={[]}
-      columnFormatters={{
-        涨跌幅: formatChangeRate
-      }}
+      // columnFormatters={{
+      //   涨跌幅: formatChangeRate
+      // }}
       buttons={{
         名称: [
           {
-            label: (row) => row.名称,
+            label: (row) => row.sector,
             onClick: handleNameClick,
             variant: 'outline',
             className: 'px-2 py-1 text-xs shadow-sm'

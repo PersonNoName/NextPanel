@@ -28,13 +28,6 @@ const CountOptions = [
   { value: "30", label: "30条"},
 ]
 
-const testOptions =   [
-  { id: "option-1", label: "医药", value: "option1" },
-  { id: "option-2", label: "煤炭", value: "option2" },
-  { id: "option-3", label: "电力", value: "option3" },
-  { id: "option-4", label: "银行", value: "option4" },
-];
-
 // 定义目标格式的类型（可选，增强类型安全）
 type OptionType = {
   id: string;
@@ -48,6 +41,7 @@ export default function OverviewPage() {
   const [countSelected, setCountSelected] = useState("10")
   const { preload } = usePreloadSectorReturnRates()
   const [availableSectorOptions, setAvailableSectorOptions] = useState<OptionType[]>([]);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
 
   useEffect(() => {
     preload()
@@ -78,7 +72,6 @@ export default function OverviewPage() {
       .sort((a, b) => b.avg_return_rate - a.avg_return_rate)
       .slice(0, parseInt(countSelected, 10));
   }, [data, isLoading, error, countSelected]);
-  console.log(availableSectorOptions)
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -99,6 +92,15 @@ export default function OverviewPage() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     alert("提交成功！");
   }
+
+  const handleSelectionChange = (selectedValues: string[]) => {
+    console.log("选中的值:", selectedValues);
+    // 你可以在这里:
+    // 1. 更新父组件的 state
+    // 2. 发送 API 请求
+    // 3. 执行其他业务逻辑
+  };
+
   // if (isLoading) return <div>Loading...</div>;
   // if (error) return <div>Error: {error.message}</div>;
   return (
@@ -159,7 +161,7 @@ export default function OverviewPage() {
         
         {/* 右侧图表容器 - 自动填充剩余空间 */}
         <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
-          <NegativeBarChartComponent />
+          <NegativeBarChartComponent data={topNResults} category_field="sector" value_field="avg_return_rate_percent" />
         </div>
       </div>
       {/* 第二行 */}
@@ -175,6 +177,7 @@ export default function OverviewPage() {
                   <SquarePlus className="hover:text-primary transition-all duration-200"/>
                 </Button>
               } 
+              onSelectionChange={handleSelectionChange}
             />
           </div>
 
