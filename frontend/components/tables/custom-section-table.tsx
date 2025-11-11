@@ -3,7 +3,16 @@ import { DataTable } from "@/components/data-table"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-export function CustomSectionTable({ className }: { className?: string }) { 
+export type CustomSectionTableProps = { 
+  data: any[],
+  columns?:{},
+  className?: string
+}
+export function CustomSectionTable({ 
+  data = [],
+  columns = {},
+  className = ""
+}: CustomSectionTableProps) { 
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -24,16 +33,14 @@ export function CustomSectionTable({ className }: { className?: string }) {
 
   return (
     <DataTable 
-      showHeader={false} 
-      columns={{ 
-        sector: '名称', 
-      }}
-      data={[]}
+      showHeader={true} 
+      columns={columns}
+      data={data}
       // columnFormatters={{
       //   涨跌幅: formatChangeRate
       // }}
       buttons={{
-        名称: [
+        sector: [
           {
             label: (row) => row.sector,
             onClick: handleNameClick,
@@ -43,7 +50,7 @@ export function CustomSectionTable({ className }: { className?: string }) {
         ]
       }}
       styles={{
-        table: 'w-full w-min-[300px]',
+        table: 'w-full',
         cell: 'whitespace-nowrap text-sm py-1'
       }}
     />    

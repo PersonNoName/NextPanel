@@ -28,9 +28,17 @@ const CountOptions = [
   { value: "30", label: "30条"},
 ]
 
+interface SectorItem {
+  cid: string;
+  sector: string;
+  description: string | null;
+  sort_order: number;
+  etf_count: number;
+}
+
 // 定义目标格式的类型（可选，增强类型安全）
 type OptionType = {
-  id: string;
+  cid: string;
   label: string;
   value: string;
 };
@@ -41,20 +49,23 @@ export default function OverviewPage() {
   const [countSelected, setCountSelected] = useState("10")
   const { preload } = usePreloadSectorReturnRates()
   const [availableSectorOptions, setAvailableSectorOptions] = useState<OptionType[]>([]);
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  const [availableSectors, setAvailableSectors] = useState<SectorItem[]>([]);
+  const [selectedSectors, setSelectedSectors] = useState<SectorItem[]>([]);
 
   useEffect(() => {
     preload()
     const getConvertedOptions = async () => {
       // 1. 获取原始数据
       const sectorsData = await getAvailableSectors();
+      console.log('sectorsData',sectorsData)
       // 2. 一步转换为目标格式
       const convertedOptions = sectorsData.sectors.map((item, index) => ({
-        id: `option-${index + 1}`, // 索引+1生成唯一id
+        cid: item.cid, // 
         label: item.sector, // label 取行业名称
         value: item.sector // value 与 label 一致
       }));
       // 3. 赋值给 Options
+      setAvailableSectors(sectorsData.sectors);
       setAvailableSectorOptions(convertedOptions);
     };
 
@@ -93,8 +104,11 @@ export default function OverviewPage() {
     alert("提交成功！");
   }
 
-  const handleSelectionChange = (selectedValues: string[]) => {
-    console.log("选中的值:", selectedValues);
+  const handleSelectionChange = (optionValue: string, isCollected: boolean) => {
+    // const data = availableSectors.filter(sector => selectedValues.includes(sector.sector))
+    console.log(optionValue, isCollected);
+    // setSelectedSectors(data);
+    // setSelectedSectors(selectedValues);
     // 你可以在这里:
     // 1. 更新父组件的 state
     // 2. 发送 API 请求
@@ -181,7 +195,14 @@ export default function OverviewPage() {
             />
           </div>
 
-          <CustomSectionTable className="p-4 rounded-lg shadow w-full xl:w-96 h-full" />
+          <CustomSectionTable 
+            className="p-4 rounded-lg shadow w-full xl:w-96 h-full" 
+            columns={{ 
+              sector : '名称', 
+              etf_count: '数量',
+            }}
+            data={selectedSectors}
+          />
         </div>
         <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
           <LineChartComponent />

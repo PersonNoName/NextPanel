@@ -10,10 +10,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { pinyin } from 'pinyin-pro';
+import { on } from "events";
 
 // 选项类型定义
 interface Option {
-  id: string;
+  cid: string;
   label: string;
   value: string;
 }
@@ -24,7 +25,7 @@ interface MultiSelectPopoverProps {
   buttonText?: string;
   customButton?: ReactNode;
   onOpenChange?: (open: boolean) => void;
-  onSelectionChange?: (selectedValues: string[]) => void;
+  onSelectionChange?: (optionValue: string, isCollected: boolean) => void;
   maxLabelWidth?: number | string;
   popoverWidth?: number | string;
 }
@@ -39,6 +40,7 @@ export function MultiSelectPopover({
   buttonText = "选择选项", 
   customButton, 
   onOpenChange,
+  onSelectionChange,
   maxLabelWidth = "120px",
   popoverWidth = "auto"
 }: MultiSelectPopoverProps) {
@@ -83,7 +85,7 @@ export function MultiSelectPopover({
       newSelectedValues = selectedValues.filter(value => value !== optionValue);
     }
     setSelectedValues(newSelectedValues);
-    await sendSelectionToBackend(optionValue);
+    onSelectionChange?.(optionValue, checked);
   };
 
   const triggerButton = customButton || (
@@ -121,16 +123,16 @@ export function MultiSelectPopover({
               {/* 该分组下的选项 */}
               <div className="space-y-2 pl-2">
                 {groupOptions.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2 group w-full">
+                  <div key={option.cid} className="flex items-center space-x-2 group w-full">
                     <Checkbox
-                      id={option.id}
+                      id={option.cid}
                       checked={selectedValues.includes(option.value)}
                       onCheckedChange={(checked) => 
-                        handleOptionChange(option.value, checked as boolean)
+                        handleOptionChange(option.cid, checked as boolean)
                       }
                     />
                     <Label
-                      htmlFor={option.id}
+                      htmlFor={option.cid}
                       className={cn(
                         "text-sm font-normal cursor-pointer",
                         "transition-colors group-hover:text-primary",
@@ -151,31 +153,5 @@ export function MultiSelectPopover({
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-// 使用示例
-export default function Demo() {
-  const sampleOptions = [
-    { id: "1", label: "苹果", value: "apple" },
-    { id: "2", label: "香蕉", value: "banana" },
-    { id: "3", label: "橙子", value: "orange" },
-    { id: "4", label: "葡萄", value: "grape" },
-    { id: "5", label: "西瓜", value: "watermelon" },
-    { id: "6", label: "草莓", value: "strawberry" },
-    { id: "7", label: "芒果", value: "mango" },
-    { id: "8", label: "樱桃", value: "cherry" },
-    { id: "9", label: "柠檬", value: "lemon" },
-    { id: "10", label: "桃子", value: "peach" },
-  ];
-
-  return (
-    <div className="flex items-center justify-center min-h-screen p-8">
-      <MultiSelectPopover 
-        options={sampleOptions}
-        buttonText="选择水果"
-        popoverWidth="280px"
-      />
-    </div>
   );
 }

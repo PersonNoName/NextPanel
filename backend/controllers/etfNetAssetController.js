@@ -294,22 +294,23 @@ const getAvailableSectors = async (req, res) => {
     // 从category表获取所有启用的类别
     const categories = await Category.findAll({
       where: { status: 1 },
-      attributes: ['name', 'description', 'sort_order'],
+      attributes: ['cid', 'name', 'description', 'sort_order', 'item_count'],
       order: [['sort_order', 'ASC']], // 改为ASC，通常较小的sort_order排在前面
       raw: true
     });
     
     // 补充每个类别的股票数量
     const result = await Promise.all(categories.map(async (category) => {
-      const count = await EtfInfo.count({
-        where: { sector: category.name }
-      });
+      // const count = await EtfInfo.count({
+      //   where: { sector: category.name }
+      // });
       
       return {
+        cid: category.cid,
         sector: category.name, // 明确字段名
         description: category.description,
         sort_order: category.sort_order,
-        etf_count: count
+        etf_count: category.item_count || 0 // 使用预计算的item_count字段
       };
     }));
     

@@ -37,7 +37,6 @@ interface BarChartProps {
   customColorList?: string[];
 }
 
-// 内置基础颜色列表 - 使用更鲜明的颜色
 const BASE_COLOR_LIST = [
   '#5470c6', '#61a0a8', '#7ecf9f', '#d4ec59', '#ffdb5c',
   '#ff9966', '#ff6666', '#9b59b6', '#34495e', '#1abc9c',
@@ -55,41 +54,41 @@ export default function NegativeBarChartComponent({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const destroyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSizeRef = useRef({ width: 0, height: 0 });
   const [isMounted, setIsMounted] = useState(false);
+  
+  // 🔑 关键优化：使用 ref 存储上一次的数据哈希，避免不必要的重绘
+  const lastDataHashRef = useRef<string>('');
+  const isInitializedRef = useRef<boolean>(false);
 
-  // 确保组件已经挂载
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // 🔴 修复1：处理数据格式，确保值是数字
+  // 🔑 关键优化：生成数据哈希来判断数据是否真的变化了
+  const dataHash = useMemo(() => {
+    return JSON.stringify({
+      data,
+      category_field,
+      value_field,
+      customColorList
+    });
+  }, [data, category_field, value_field, customColorList]);
+
+  // 处理数据格式
   const { categories, processedData } = useMemo(() => {
     const cats = data.map(item => String(item[category_field]));
     const processed = data.map(item => {
       let value = item[value_field];
-      // 确保值是数字类型
       if (typeof value === 'string') {
         value = parseFloat(value);
       }
-      // 如果转换失败，设置为0
       return isNaN(value) ? 0 : value;
     });
     
     return { categories: cats, processedData: processed };
   }, [data, category_field, value_field]);
 
-  // 🔴 修复2：调试日志 - 检查数据
-  useEffect(() => {
-    console.log('Chart data:', {
-      categories,
-      processedData,
-      originalData: data
-    });
-  }, [categories, processedData, data]);
-
-  // 🔴 修复3：缓存颜色列表
+  // 缓存颜色列表
   const colorList = useMemo(() => {
     const colorSource = customColorList.length > 0 ? customColorList : BASE_COLOR_LIST;
     return Array.from({ length: categories.length }, (_, i) => 
@@ -97,18 +96,15 @@ export default function NegativeBarChartComponent({
     );
   }, [categories.length, customColorList]);
 
-  // 🔴 修复4：生成图表配置项 - 修复颜色和数据显示问题
+  // 生成图表配置项
   const getChartOption = useCallback((): EChartsOption => {
-    // 计算数据范围，用于设置坐标轴
     const dataMin = Math.min(...processedData);
     const dataMax = Math.max(...processedData);
-    const padding = Math.max(Math.abs(dataMin), Math.abs(dataMax)) * 0.1; // 10% 的边距
+    const padding = Math.max(Math.abs(dataMin), Math.abs(dataMax)) * 0.1;
     
-    console.log('Data range:', { dataMin, dataMax, padding });
-
     return {
       darkMode: true,
-      backgroundColor: 'transparent', // 改为透明背景
+      backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
         axisPointer: { 
@@ -141,14 +137,13 @@ export default function NegativeBarChartComponent({
         },
         axisLine: { 
           lineStyle: { 
-            color: '#fff', // 改为白色更明显
+            color: '#fff',
             width: 2
           } 
         },
         axisLabel: { 
           color: '#fff',
           fontSize: 12,
-          // 新增：将x轴数值格式化为整数（解决显示过长）
           formatter: (value: number) => Math.round(value).toString(),
         },
         splitLine: {
@@ -157,7 +152,6 @@ export default function NegativeBarChartComponent({
             type: 'dashed'
           }
         },
-        // 设置坐标轴范围，确保数据可见
         min: dataMin - padding,
         max: dataMax + padding
       },
@@ -169,16 +163,16 @@ export default function NegativeBarChartComponent({
         data: categories,
         axisLine: { 
           lineStyle: { 
-            color: '#fff', // 改为白色更明显
+            color: '#fff',
             width: 2
           } 
         },
         axisLabel: { 
           color: '#fff',
           fontSize: 12,
-          interval: 0 // 显示所有标签
+          interval: 0
         },
-        inverse: false // 确保类别顺序正确
+        inverse: false
       },
       series: [
         {
@@ -193,16 +187,13 @@ export default function NegativeBarChartComponent({
             },
             label: {
               show: true,
-              position: value < 0 ? 'left' : 'right', // 负值左、正值右
+              position: value < 0 ? 'left' : 'right',
               color: '#fff',
               fontSize: 12,
               fontWeight: 'bold'
             }
           })),
-
-          // 确保柱状图有最小高度
           barMinHeight: 1,
-          // 添加动画
           animation: true,
           animationDuration: 1000,
           animationEasing: 'elasticOut'
@@ -211,51 +202,44 @@ export default function NegativeBarChartComponent({
     };
   }, [categories, processedData, colorList]);
 
-  // 🔴 关键优化：检查容器尺寸是否有效
-  const hasValidContainerSize = useCallback(() => {
-    if (!containerRef.current) return false;
+  // 🔑 关键优化：只在数据真正变化时更新图表
+  const updateChartOption = useCallback(() => {
+    if (!chartInstance.current) return;
+    
+    try {
+      const option = getChartOption();
+      // 使用 notMerge: false 来更新而不是完全重绘
+      chartInstance.current.setOption(option, { notMerge: false, lazyUpdate: true });
+    } catch (error) {
+      console.error('Failed to update chart:', error);
+    }
+  }, [getChartOption]);
+
+  // 初始化图表（只在首次挂载时执行）
+  const initChart = useCallback(() => {
+    if (!chartRef.current || !containerRef.current || !isMounted) return false;
     
     const rect = containerRef.current.getBoundingClientRect();
-    const { width, height } = rect;
-    
-    return width > 0 && height > 0;
-  }, []);
-
-  // 🔴 关键优化：初始化图表
-  const initChart = useCallback(() => {
-    if (!chartRef.current || !containerRef.current || !isMounted) return;
-    
-    // 检查容器尺寸
-    if (!hasValidContainerSize()) {
-      console.warn('Container has invalid size, delaying chart initialization');
-      return false;
-    }
+    if (rect.width <= 0 || rect.height <= 0) return false;
 
     try {
       if (!chartInstance.current) {
         chartInstance.current = echarts.init(chartRef.current, 'dark');
-        
-        // 添加调试事件
-        chartInstance.current.on('rendered', () => {
-          console.log('Chart rendered successfully');
-        });
-        
-        chartInstance.current.on('finished', () => {
-          console.log('Chart animation finished');
-        });
+        console.log('📊 图表初始化');
       }
       
       const option = getChartOption();
-      console.log('Setting chart option:', option);
-      chartInstance.current.setOption(option, true); // 使用 true 强制刷新
+      chartInstance.current.setOption(option, true);
+      isInitializedRef.current = true;
+      lastDataHashRef.current = dataHash;
       return true;
     } catch (error) {
       console.error('Failed to initialize chart:', error);
       return false;
     }
-  }, [getChartOption, hasValidContainerSize, isMounted]);
+  }, [getChartOption, isMounted, dataHash]);
 
-  // 🔴 关键优化：调整尺寸
+  // 调整尺寸
   const resizeChart = useCallback(() => {
     if (!chartInstance.current || !containerRef.current) return;
 
@@ -263,20 +247,14 @@ export default function NegativeBarChartComponent({
     const newWidth = Math.floor(rect.width);
     const newHeight = Math.floor(rect.height);
 
-    // 检查尺寸是否有效
     if (newWidth <= 0 || newHeight <= 0) return;
 
-    if (lastSizeRef.current.width !== newWidth || lastSizeRef.current.height !== newHeight) {
-      lastSizeRef.current = { width: newWidth, height: newHeight };
-      
-      try {
-        chartInstance.current.resize({ width: newWidth, height: newHeight });
-        chartInstance.current.setOption(getChartOption());
-      } catch (error) {
-        console.error('Failed to resize chart:', error);
-      }
+    try {
+      chartInstance.current.resize({ width: newWidth, height: newHeight });
+    } catch (error) {
+      console.error('Failed to resize chart:', error);
     }
-  }, [getChartOption]);
+  }, []);
 
   // 防抖resize
   const debouncedResize = useCallback(() => {
@@ -284,14 +262,13 @@ export default function NegativeBarChartComponent({
     resizeTimerRef.current = setTimeout(resizeChart, 150);
   }, [resizeChart]);
 
-  // 🔴 关键优化：延迟初始化，确保DOM已渲染
+  // 🔑 关键优化：首次初始化（只执行一次）
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || isInitializedRef.current) return;
 
     const initTimer = setTimeout(() => {
       const success = initChart();
       if (!success) {
-        // 如果初始化失败，在下一个事件循环中重试
         setTimeout(initChart, 100);
       }
     }, 100);
@@ -299,82 +276,55 @@ export default function NegativeBarChartComponent({
     return () => {
       clearTimeout(initTimer);
     };
-  }, [initChart, isMounted]);
+  }, [isMounted, initChart]);
 
-  // 🔴 关键优化：清理函数重构
-  const cleanupChart = useCallback(() => {
-    if (resizeTimerRef.current) {
-      clearTimeout(resizeTimerRef.current);
-      resizeTimerRef.current = null;
-    }
-    
-    if (destroyTimerRef.current) {
-      clearTimeout(destroyTimerRef.current);
-      destroyTimerRef.current = null;
+  // 🔑 关键优化：数据变化时只更新，不重新初始化
+  useEffect(() => {
+    // 如果数据哈希没有变化，跳过更新
+    if (dataHash === lastDataHashRef.current) {
+      return;
     }
 
-    // 立即清理图表实例
-    if (chartInstance.current) {
-      chartInstance.current.dispose();
-      chartInstance.current = null;
+    // 如果图表已经初始化，只更新配置
+    if (isInitializedRef.current && chartInstance.current) {
+      console.log('🔄 数据更新，刷新图表配置');
+      lastDataHashRef.current = dataHash;
+      updateChartOption();
     }
-  }, []);
+  }, [dataHash, updateChartOption]);
 
-  // 🔴 关键优化：监听尺寸变化
+  // 监听尺寸变化
   useEffect(() => {
     if (!isMounted || !containerRef.current) return;
 
-    // 监听尺寸变化
     const resizeObserver = new ResizeObserver(debouncedResize);
     resizeObserver.observe(containerRef.current);
     
-    // 监听窗口变化
     window.addEventListener('resize', debouncedResize);
 
-    // 监听DOM布局变化
-    const mutationObserver = new MutationObserver(debouncedResize);
-    let parentToObserve = containerRef.current.parentElement;
-    let depth = 0;
-    
-    while (parentToObserve && depth < 5) {
-      mutationObserver.observe(parentToObserve, {
-        attributes: true,
-        attributeFilter: ['class', 'style'],
-        childList: false,
-        subtree: false,
-      });
-      parentToObserve = parentToObserve.parentElement;
-      depth++;
-    }
-
-    // 正确的清理函数
     return () => {
-      // 清理事件监听器
       window.removeEventListener('resize', debouncedResize);
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
       
-      // 清理定时器
       if (resizeTimerRef.current) {
         clearTimeout(resizeTimerRef.current);
         resizeTimerRef.current = null;
       }
-      
-      // 延迟清理图表实例（避免频繁创建销毁）
-      destroyTimerRef.current = setTimeout(() => {
-        cleanupChart();
-      }, 100);
     };
-  }, [debouncedResize, isMounted, cleanupChart]);
+  }, [debouncedResize, isMounted]);
 
-  // 🔴 关键优化：组件卸载时完全清理
+  // 组件卸载时完全清理
   useEffect(() => {
     return () => {
-      cleanupChart();
+      if (chartInstance.current) {
+        console.log('🗑️ 图表销毁');
+        chartInstance.current.dispose();
+        chartInstance.current = null;
+        isInitializedRef.current = false;
+      }
     };
-  }, [cleanupChart]);
+  }, []);
 
-  // 添加加载状态
   if (!isMounted) {
     return (
       <div
@@ -396,7 +346,7 @@ export default function NegativeBarChartComponent({
         minHeight: '400px',
         width: '100%',
         height: '100%',
-        backgroundColor: '#000000' // 确保容器有黑色背景
+        backgroundColor: '#000000'
       }}
     >
       <div
