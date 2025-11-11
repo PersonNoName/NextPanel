@@ -55,18 +55,66 @@ export default function OverviewPage() {
   useEffect(() => {
     preload()
     const getConvertedOptions = async () => {
-      // 1. 获取原始数据
-      const sectorsData = await getAvailableSectors();
-      console.log('sectorsData',sectorsData)
-      // 2. 一步转换为目标格式
-      const convertedOptions = sectorsData.sectors.map((item, index) => ({
-        cid: item.cid, // 
-        label: item.sector, // label 取行业名称
-        value: item.sector // value 与 label 一致
-      }));
-      // 3. 赋值给 Options
-      setAvailableSectors(sectorsData.sectors);
-      setAvailableSectorOptions(convertedOptions);
+      // 1. 定义缓存相关常量（key + 有效期，这里设为 7 天，可根据需求调整）
+      const CACHE_KEY = 'sectorsDataCache';
+      const CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000; // 7天的毫秒数
+
+      // 2. 尝试从 localStorage 读取缓存
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // 检查缓存是否过期
+        if (Date.now() - timestamp < CACHE_EXPIRE) {
+          console.log('从缓存读取板块数据');
+          // 直接使用缓存数据转换
+          const convertedOptions = data.map((item) => ({
+            cid: item.cid,
+            label: item.sector,
+            value: item.sector
+          }));
+          setAvailableSectors(data);
+          setAvailableSectorOptions(convertedOptions);
+          return; // 缓存有效，直接返回，不请求接口
+        }
+      }
+
+      // 3. 缓存不存在/过期，请求接口
+      try {
+        const sectorsData = await getAvailableSectors();
+        console.log('从接口获取板块数据', sectorsData);
+
+        const convertedOptions = sectorsData.sectors.map((item) => ({
+          cid: item.cid,
+          label: item.sector,
+          value: item.sector
+        }));
+
+        // 4. 存入缓存（包含数据和时间戳）
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            data: sectorsData.sectors,
+            timestamp: Date.now()
+          })
+        );
+
+        // 5. 赋值状态
+        setAvailableSectors(sectorsData.sectors);
+        setAvailableSectorOptions(convertedOptions);
+      } catch (error) {
+        console.error('获取板块数据失败', error);
+        // 可选：缓存失效且接口失败时，可降级使用过期缓存
+        if (cachedData) {
+          const { data } = JSON.parse(cachedData);
+          const convertedOptions = (data.sectors as SectorItem[]).map((item) => ({
+            cid: item.cid,
+            label: item.sector,
+            value: item.sector,
+          }));
+          setAvailableSectors(data);
+          setAvailableSectorOptions(convertedOptions);
+        }
+      }
     };
 
     getConvertedOptions();
@@ -104,7 +152,7 @@ export default function OverviewPage() {
     alert("提交成功！");
   }
 
-  const handleSelectionChange = (optionValue: string, isCollected: boolean) => {
+  const handleSelectionChange = (optionValue: OptionType, isCollected: boolean) => {
     // const data = availableSectors.filter(sector => selectedValues.includes(sector.sector))
     console.log(optionValue, isCollected);
     // setSelectedSectors(data);

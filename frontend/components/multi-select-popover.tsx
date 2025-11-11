@@ -25,7 +25,7 @@ interface MultiSelectPopoverProps {
   buttonText?: string;
   customButton?: ReactNode;
   onOpenChange?: (open: boolean) => void;
-  onSelectionChange?: (optionValue: string, isCollected: boolean) => void;
+  onSelectionChange?: (optionCid: Option, isCollected: boolean) => void;
   maxLabelWidth?: number | string;
   popoverWidth?: number | string;
 }
@@ -77,15 +77,15 @@ export function MultiSelectPopover({
     console.log("发送数据到后端:", value);
   };
 
-  const handleOptionChange = async (optionValue: string, checked: boolean) => {
+  const handleOptionChange = async (option: Option, checked: boolean) => {
     let newSelectedValues: string[];
     if (checked) {
-      newSelectedValues = [...selectedValues, optionValue];
+      newSelectedValues = [...selectedValues, option.value];
     } else {
-      newSelectedValues = selectedValues.filter(value => value !== optionValue);
+      newSelectedValues = selectedValues.filter(value => value !== option.value);
     }
     setSelectedValues(newSelectedValues);
-    onSelectionChange?.(optionValue, checked);
+    onSelectionChange?.(option, checked);
   };
 
   const triggerButton = customButton || (
@@ -128,7 +128,7 @@ export function MultiSelectPopover({
                       id={option.cid}
                       checked={selectedValues.includes(option.value)}
                       onCheckedChange={(checked) => 
-                        handleOptionChange(option.cid, checked as boolean)
+                        handleOptionChange(option, checked as boolean)
                       }
                     />
                     <Label
