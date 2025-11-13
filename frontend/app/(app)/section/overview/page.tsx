@@ -1,3 +1,4 @@
+//page.tsx
 "use client";
 import NegativeBarChartComponent from "@/components/charts/negative-bar"
 import { DataTable } from "@/components/data-table"
@@ -12,13 +13,14 @@ import LineChartComponent  from "@/components/charts/line-chart";
 import { timeRangeValues } from "@/hooks/useEtfQueryHooks";
 import {usePreloadSectorReturnRates, useSectorReturnRate}  from "@/hooks/useEtfQueryHooks"
 import {getAvailableSectors} from "@/hooks/useEtfQueryHooks"
+import { getEtfCollect, addEtfCollect, deleteEtfCollect } from "@/hooks/useEtfQueryHooks";
 
 // 从基础数据派生出TimeRange类型
 export type TimeRange = typeof timeRangeValues[number];
 
 // 基于基础数据生成RangeOptions
 const RangeOptions = timeRangeValues.map(value => ({
-  value: value.toString(), // 转换为字符串，保持与原示例一致
+  value: value.toString(),
   label: `${value}天`
 }));
 
@@ -36,7 +38,7 @@ interface SectorItem {
   etf_count: number;
 }
 
-// 定义目标格式的类型（可选，增强类型安全）
+// 定义目标格式的类型
 type OptionType = {
   cid: string;
   label: string;
@@ -52,33 +54,37 @@ export default function OverviewPage() {
   const [availableSectors, setAvailableSectors] = useState<SectorItem[]>([]);
   const [selectedSectors, setSelectedSectors] = useState<SectorItem[]>([]);
 
+  // 将 selectedSectors 转换为 MultiSelectPopover 需要的格式
+  const selectedSectorOptions = useMemo(() => {
+    return selectedSectors.map(sector => ({
+      cid: sector.cid,
+      label: sector.sector,
+      value: sector.sector
+    }));
+  }, [selectedSectors]);
+
   useEffect(() => {
     preload()
     const getConvertedOptions = async () => {
-      // 1. 定义缓存相关常量（key + 有效期，这里设为 7 天，可根据需求调整）
       const CACHE_KEY = 'sectorsDataCache';
-      const CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000; // 7天的毫秒数
+      const CACHE_EXPIRE = 7 * 24 * 60 * 60 * 1000;
 
-      // 2. 尝试从 localStorage 读取缓存
       const cachedData = localStorage.getItem(CACHE_KEY);
       if (cachedData) {
         const { data, timestamp } = JSON.parse(cachedData);
-        // 检查缓存是否过期
         if (Date.now() - timestamp < CACHE_EXPIRE) {
           console.log('从缓存读取板块数据');
-          // 直接使用缓存数据转换
-          const convertedOptions = data.map((item) => ({
+          const convertedOptions = data.map((item: SectorItem) => ({
             cid: item.cid,
             label: item.sector,
             value: item.sector
           }));
           setAvailableSectors(data);
           setAvailableSectorOptions(convertedOptions);
-          return; // 缓存有效，直接返回，不请求接口
+          return;
         }
       }
 
-      // 3. 缓存不存在/过期，请求接口
       try {
         const sectorsData = await getAvailableSectors();
         console.log('从接口获取板块数据', sectorsData);
@@ -89,7 +95,6 @@ export default function OverviewPage() {
           value: item.sector
         }));
 
-        // 4. 存入缓存（包含数据和时间戳）
         localStorage.setItem(
           CACHE_KEY,
           JSON.stringify({
@@ -98,12 +103,10 @@ export default function OverviewPage() {
           })
         );
 
-        // 5. 赋值状态
         setAvailableSectors(sectorsData.sectors);
         setAvailableSectorOptions(convertedOptions);
       } catch (error) {
         console.error('获取板块数据失败', error);
-        // 可选：缓存失效且接口失败时，可降级使用过期缓存
         if (cachedData) {
           const { data } = JSON.parse(cachedData);
           const convertedOptions = (data.sectors as SectorItem[]).map((item) => ({
@@ -117,20 +120,39 @@ export default function OverviewPage() {
       }
     };
 
+    const getSelectedSectors = async () => {
+      try {
+        const data = await getEtfCollect();
+        console.log("用户自选板块数据:", data);
+
+        const formattedSectors: SectorItem[] = data.collections.map(collect => ({
+          cid: collect.cid.toString(),
+          sector: collect.sector,
+          description: collect.description,
+          sort_order: collect.sort_order,
+          etf_count: collect.item_count
+        }))
+
+        setSelectedSectors(formattedSectors);
+      } catch (error) {
+        console.error("获取自选板块失败:", error);
+      }
+    }
+
     getConvertedOptions();
+    getSelectedSectors();
   }, [])
 
   const { data, isLoading, error } = useSectorReturnRate(timeSelected)
 
   const topNResults = useMemo(() => {
-    // 数据未就绪时返回空数组
     if (isLoading || error || !data?.sector_results) return [];
     
-    // 深拷贝数组避免修改原数据，再排序、截取
     return [...data.sector_results]
       .sort((a, b) => b.avg_return_rate - a.avg_return_rate)
       .slice(0, parseInt(countSelected, 10));
   }, [data, isLoading, error, countSelected]);
+  
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
     const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
@@ -152,19 +174,37 @@ export default function OverviewPage() {
     alert("提交成功！");
   }
 
-  const handleSelectionChange = (optionValue: OptionType, isCollected: boolean) => {
-    // const data = availableSectors.filter(sector => selectedValues.includes(sector.sector))
-    console.log(optionValue, isCollected);
-    // setSelectedSectors(data);
-    // setSelectedSectors(selectedValues);
-    // 你可以在这里:
-    // 1. 更新父组件的 state
-    // 2. 发送 API 请求
-    // 3. 执行其他业务逻辑
+  const handleSelectionChange = async (optionValue: OptionType, isCollected: boolean) => {
+    const cid = optionValue.cid.toString();
+    console.log('操作类型:', isCollected ? '添加' : '删除');
+    console.log('操作的 cid:', cid, 'typeof:', typeof cid);
+    console.log('当前 selectedSectors:', selectedSectors.map(s => ({ cid: s.cid, type: typeof s.cid })));
+  
+    try {
+      if (isCollected) {
+        // 添加自选
+        await addEtfCollect(cid);
+        // 从 availableSectors 中找到对应的完整数据
+        const sectorToAdd = availableSectors.find(sector => sector.cid === cid);
+        if (sectorToAdd) {
+          setSelectedSectors((prev) => [
+            ...prev,
+            sectorToAdd
+          ]);
+        }
+      } else {
+        // 删除自选
+        await deleteEtfCollect(cid);
+        setSelectedSectors((prev) => 
+          prev.filter(sector => sector.cid !== cid)
+        );
+      }
+    } catch (error) {
+      console.error("操作失败:", error);
+      alert(isCollected ? "添加自选失败！" : "删除自选失败！");
+    }
   };
 
-  // if (isLoading) return <div>Loading...</div>;
-  // if (error) return <div>Error: {error.message}</div>;
   return (
     <div className="w-full h-full p-4 overflow-y-auto overflow-x-hidden grid grid-cols-1 gap-4 auto-rows-min">
       {/* 第一行 - 各板块涨跌幅表格和图表 */}
@@ -226,14 +266,16 @@ export default function OverviewPage() {
           <NegativeBarChartComponent data={topNResults} category_field="sector" value_field="avg_return_rate_percent" />
         </div>
       </div>
+      
       {/* 第二行 */}
       <div className="w-full grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 h-[480px]">
-        <div className="bg-white p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden  min-w-76">
+        <div className="bg-white p-4 rounded-lg shadow w-full xl:w-96 grid grid-rows-[auto_1fr] overflow-hidden min-w-76">
           <div className="flex flex-between mb-2">
-            <p className="text-lg font-bold mb-2 flex justify-start mr-2">各板块涨跌幅</p>
+            <p className="text-lg font-bold mb-2 flex justify-start mr-2">自选板块</p>
             
             <MultiSelectPopover 
               options={availableSectorOptions} 
+              selectedValues={selectedSectorOptions} // 传递当前选中的板块
               customButton={
                 <Button variant="ghost" size="icon" className="ml-auto">
                   <SquarePlus className="hover:text-primary transition-all duration-200"/>
@@ -271,4 +313,4 @@ export default function OverviewPage() {
       )}
     </div>
   )
-}
+} 

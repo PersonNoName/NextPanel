@@ -3,6 +3,7 @@
 import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
 import etfService, { ReturnRateBySectorsResponse } from '@/lib/api/etfService';
+import EtfCollectService from '@/lib/api/etfCollectService';
 import DateService from '@/lib/api/dateService';
 // ==================== 类型定义 ====================
 export const timeRangeValues = [3, 5, 10, 15] as const;
@@ -231,6 +232,20 @@ export const getAvailableSectors = async () => {
   return data;
 };
 
+export const getEtfCollect = async () => {
+  const data = await EtfCollectService.getEtfCollect();
+  return data;
+}
+
+export const addEtfCollect = async (cid: string) => {
+  const data = await EtfCollectService.addEtfCollect({ cid });
+  return data;
+}
+
+export const deleteEtfCollect = async (cid: string) => {
+  const data = await EtfCollectService.deleteEtfCollect(cid);
+  return data;
+}
 // ==================== 便捷 Hook ====================
 /**
  * 预加载 Hook - 用于组件中触发预加载

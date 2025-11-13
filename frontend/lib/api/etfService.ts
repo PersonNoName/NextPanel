@@ -67,6 +67,7 @@ export interface ReturnRateBySectorsResponse {
 export interface AvailableSectorsResponse {
   total: number;
   sectors: Array<{
+    cid: string;
     sector: string;
     description: string;
     sort_order: number;
