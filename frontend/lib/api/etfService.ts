@@ -74,6 +74,10 @@ export interface AvailableSectorsResponse {
     etf_count: number;
   }>;
 }
+
+export interface EtfMultipleSectorsReturnRateHistoryResponse {
+  
+}
 // ETF服务类
 class EtfService extends BaseService {
   constructor() {

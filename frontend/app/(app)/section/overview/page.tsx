@@ -73,7 +73,6 @@ export default function OverviewPage() {
       if (cachedData) {
         const { data, timestamp } = JSON.parse(cachedData);
         if (Date.now() - timestamp < CACHE_EXPIRE) {
-          console.log('从缓存读取板块数据');
           const convertedOptions = data.map((item: SectorItem) => ({
             cid: item.cid,
             label: item.sector,
@@ -87,7 +86,6 @@ export default function OverviewPage() {
 
       try {
         const sectorsData = await getAvailableSectors();
-        console.log('从接口获取板块数据', sectorsData);
 
         const convertedOptions = sectorsData.sectors.map((item) => ({
           cid: item.cid,
@@ -102,7 +100,6 @@ export default function OverviewPage() {
             timestamp: Date.now()
           })
         );
-
         setAvailableSectors(sectorsData.sectors);
         setAvailableSectorOptions(convertedOptions);
       } catch (error) {
@@ -176,16 +173,12 @@ export default function OverviewPage() {
 
   const handleSelectionChange = async (optionValue: OptionType, isCollected: boolean) => {
     const cid = optionValue.cid.toString();
-    console.log('操作类型:', isCollected ? '添加' : '删除');
-    console.log('操作的 cid:', cid, 'typeof:', typeof cid);
-    console.log('当前 selectedSectors:', selectedSectors.map(s => ({ cid: s.cid, type: typeof s.cid })));
-  
     try {
       if (isCollected) {
         // 添加自选
         await addEtfCollect(cid);
         // 从 availableSectors 中找到对应的完整数据
-        const sectorToAdd = availableSectors.find(sector => sector.cid === cid);
+        const sectorToAdd = availableSectors.find(sector => sector.cid.toString() === cid);
         if (sectorToAdd) {
           setSelectedSectors((prev) => [
             ...prev,
@@ -196,7 +189,7 @@ export default function OverviewPage() {
         // 删除自选
         await deleteEtfCollect(cid);
         setSelectedSectors((prev) => 
-          prev.filter(sector => sector.cid !== cid)
+          prev.filter(sector => sector.cid.toString() !== cid)
         );
       }
     } catch (error) {

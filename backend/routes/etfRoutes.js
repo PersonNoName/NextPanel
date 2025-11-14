@@ -275,5 +275,6 @@ router.post('/sector-return-rate', authenticateToken, etfNetAssetController.getR
  *         description: 服务器错误
  */
 router.get('/available-sectors', authenticateToken, etfNetAssetController.getAvailableSectors);
-
+router.get('/sector-return-history', authenticateToken, etfNetAssetController.getSectorReturnRateHistory);
+router.get('/sectors/batch',authenticateToken, etfNetAssetController.getMultipleSectorsReturnRateHistory )
 module.exports = router;

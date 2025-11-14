@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const responseTime = require('./middlewares/responseTime');
 const cors = require('cors');
 const helmet = require('helmet');
 const authRoutes = require('./routes/authRoutes');
@@ -11,6 +12,7 @@ const config = require('./config/config');
 const app = express();
 
 app.use(helmet())
+app.use(responseTime());
 app.use(cors(
   config.cors
 ))
