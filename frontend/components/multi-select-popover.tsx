@@ -25,8 +25,10 @@ interface MultiSelectPopoverProps {
   customButton?: ReactNode;
   onOpenChange?: (open: boolean) => void;
   onSelectionChange?: (selectedOption: Option, isCollected: boolean) => void;
+  onMaxLimitReached?: (isReached: boolean) => void; // 新增：达到最大限制时的回调
   maxLabelWidth?: number | string;
   popoverWidth?: number | string;
+  maxSelect?: number; // 新增：最大选择数量限制
   defaultSelectedValues?: Option[]; // 非受控模式：初始已选值（改为Option[]）
   selectedValues?: Option[]; // 受控模式：当前已选值（改为Option[]）
   disabled?: boolean; // 可选：禁用组件
@@ -45,8 +47,10 @@ export function MultiSelectPopover({
   customButton, 
   onOpenChange,
   onSelectionChange,
+  onMaxLimitReached, // 新增：最大限制回调
   maxLabelWidth = "120px",
   popoverWidth = "auto",
+  maxSelect = 10, // 新增：默认最大选择10个
   defaultSelectedValues = [], // 非受控模式初始值（Option[]）
   selectedValues: propsSelectedValues, // 受控模式已选值（Option[]）
   disabled = false
@@ -63,12 +67,22 @@ export function MultiSelectPopover({
   // 当前实际使用的已选值（受控优先，类型为Option[]）
   const currentSelectedValues = propsSelectedValues ?? internalSelectedValues;
 
+  // 是否达到最大选择限制
+  const isMaxLimitReached = useMemo(() => {
+    return currentSelectedValues.length >= maxSelect;
+  }, [currentSelectedValues.length, maxSelect]);
+
   // 当父组件传入的selectedValues变化时，同步内部状态（受控模式）
   useEffect(() => {
     if (propsSelectedValues) {
       setInternalSelectedValues(propsSelectedValues);
     }
   }, [propsSelectedValues]);
+
+  // 当达到最大限制时通知父组件
+  useEffect(() => {
+    onMaxLimitReached?.(isMaxLimitReached);
+  }, [isMaxLimitReached, onMaxLimitReached]);
 
   // 按拼音首字母分组（依赖全部选项，不受选中值类型影响）
   const groupedOptions = useMemo(() => {
@@ -106,6 +120,28 @@ export function MultiSelectPopover({
   const handleOptionChange = (option: Option, checked: boolean) => {
     if (disabled) return;
 
+    // 如果已经是选中状态，允许取消选中
+    if (!checked) {
+      let newSelectedValues: Option[] = currentSelectedValues.filter(item => item.value !== option.value);
+      
+      // 更新状态（非受控模式）
+      if (!propsSelectedValues) {
+        setInternalSelectedValues(newSelectedValues);
+      }
+
+      // 通知父组件选中状态变化
+      onSelectionChange?.(option, checked);
+      return;
+    }
+
+    // 如果是选中操作，检查是否达到最大限制
+    if (isMaxLimitReached) {
+      // 达到最大限制，不允许再选择
+      console.warn(`已达到最大选择数量限制：${maxSelect}`);
+      return;
+    }
+
+    // 未达到限制，正常添加
     let newSelectedValues: Option[];
     if (checked) {
       // 选中：添加到已选列表（通过value去重，避免重复选中）
@@ -138,15 +174,19 @@ export function MultiSelectPopover({
       variant="outline" 
       disabled={disabled}
       className={cn("w-full justify-between", {
-        "truncate": currentSelectedValues.length > 0
+        "truncate": currentSelectedValues.length > 0,
+        "border-orange-200 bg-orange-50": isMaxLimitReached // 达到限制时特殊样式
       })}
     >
-      {currentSelectedValues.length > 0 ? getSelectedLabels : buttonText}
-      {currentSelectedValues.length > 0 && (
-        <span className="ml-2 text-xs bg-primary/10 px-1.5 py-0.5 rounded-full">
-          {currentSelectedValues.length}
-        </span>
-      )}
+      <span className="truncate">
+        {currentSelectedValues.length > 0 ? getSelectedLabels : buttonText}
+      </span>
+      <span className={cn("ml-2 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0", {
+        "bg-primary/10": !isMaxLimitReached,
+        "bg-orange-100 text-orange-800": isMaxLimitReached // 达到限制时特殊样式
+      })}>
+        {currentSelectedValues.length}/{maxSelect}
+      </span>
     </Button>
   );
 
@@ -160,6 +200,19 @@ export function MultiSelectPopover({
         align="start"
         style={{ width: popoverWidth }}
       >
+        {/* 最大选择数量提示 */}
+        {maxSelect > 0 && (
+          <div className={cn("text-xs mb-3 px-2 py-1 rounded text-center", {
+            "text-muted-foreground": !isMaxLimitReached,
+            "text-orange-600 bg-orange-50": isMaxLimitReached
+          })}>
+            {isMaxLimitReached 
+              ? `已达到最大选择数量（${maxSelect}），请取消选择后再选其他选项`
+              : `最多可选择 ${maxSelect} 个选项（已选 ${currentSelectedValues.length} 个）`
+            }
+          </div>
+        )}
+        
         <div className="space-y-4">
           {/* 空状态处理 */}
           {Object.keys(groupedOptions).length === 0 ? (
@@ -179,33 +232,50 @@ export function MultiSelectPopover({
                 
                 {/* 该分组下的选项 */}
                 <div className="space-y-2 pl-2">
-                  {groupOptions.map((option) => (
-                    <div key={option.cid} className="flex items-center space-x-2 group w-full">
-                      <Checkbox
-                        id={option.cid}
-                        // 检查选项是否已选中（通过value匹配Option[]中的项）
-                        checked={currentSelectedValues.some(item => item.value === option.value)}
-                        onCheckedChange={(checked) => 
-                          handleOptionChange(option, checked as boolean)
-                        }
-                        disabled={disabled}
-                      />
-                      <Label
-                        htmlFor={option.cid}
+                  {groupOptions.map((option) => {
+                    const isChecked = currentSelectedValues.some(item => item.value === option.value);
+                    const isDisabled = !isChecked && isMaxLimitReached;
+                    
+                    return (
+                      <div 
+                        key={option.cid} 
                         className={cn(
-                          "text-sm font-normal cursor-pointer",
-                          "transition-colors group-hover:text-primary",
-                          "block truncate flex-1 min-w-0"
+                          "flex items-center space-x-2 group w-full",
+                          isDisabled && "opacity-50 cursor-not-allowed"
                         )}
-                        style={{ 
-                          maxWidth: maxLabelWidth 
-                        }}
-                        title={option.label}
                       >
-                        {option.label}
-                      </Label>
-                    </div>
-                  ))}
+                        <Checkbox
+                          id={option.cid}
+                          // 检查选项是否已选中（通过value匹配Option[]中的项）
+                          checked={isChecked}
+                          onCheckedChange={(checked) => 
+                            handleOptionChange(option, checked as boolean)
+                          }
+                          disabled={disabled || isDisabled}
+                        />
+                        <Label
+                          htmlFor={option.cid}
+                          className={cn(
+                            "text-sm font-normal cursor-pointer",
+                            "transition-colors group-hover:text-primary",
+                            "block truncate flex-1 min-w-0",
+                            (disabled || isDisabled) && "cursor-not-allowed"
+                          )}
+                          style={{ 
+                            maxWidth: maxLabelWidth 
+                          }}
+                          title={option.label}
+                        >
+                          {option.label}
+                          {isDisabled && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              (已达上限)
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))

@@ -75,8 +75,50 @@ export interface AvailableSectorsResponse {
   }>;
 }
 
+// 基础收益率历史记录接口
+export interface ReturnRateHistory {
+  start_date: string;
+  end_date: string;
+  valid_etf_count: number;
+  avg_return_rate: number;
+  avg_return_rate_percent: string;
+}
+
+// 单个行业类别结果接口
+export interface SectorResult {
+  sector_description: string;
+  total_etfs: number;
+  query_date: string;
+  actual_end_date: string;
+  requested_count: number;
+  actual_count: number;
+  return_rate_history: ReturnRateHistory[];
+}
+
+// 性能监控详情接口
+export interface PerformanceTiming {
+  calendar_query_ms: number;
+  etf_info_query_ms: number;
+  netasset_query_ms: number;
+  calculation_ms: number;
+  category_info_query_ms: number;
+}
+// 性能数据接口
+interface PerformanceData {
+  response_time_ms: number;
+  sectors_queried: number;
+  trading_days: number;
+  detailed_timing: PerformanceTiming;
+}
+// 多类别收益率历史响应接口
 export interface EtfMultipleSectorsReturnRateHistoryResponse {
-  
+  sectors_count: number;
+  query_date: string;
+  trading_days_count: number;
+  results: {
+    [sectorName: string]: SectorResult;
+  };
+  performance: PerformanceData;
 }
 // ETF服务类
 class EtfService extends BaseService {
@@ -117,6 +159,24 @@ class EtfService extends BaseService {
     };
     return this.getReturnRateBySectors(requestData);
   }
+  async getMultipleSectorsReturnRateHistory(
+    sectors: string[],
+    date: string,
+    n: number,
+    includeTiming = false
+  ): Promise<EtfMultipleSectorsReturnRateHistoryResponse> {
+    // 构造查询参数（URL Query String）
+    const params = new URLSearchParams({
+      sectors: sectors.join(','), // 类别列表拼接为字符串（如："计算机,创新药,红利"）
+      date, // 基准日期
+      n: n.toString(), // 回溯天数（转为字符串）
+      includeTiming: includeTiming.toString() // 是否包含性能数据（布尔转字符串）
+    });
+
+    // 发送 GET 请求：基础路径 + /sectors/batch + 查询参数
+    return this.get<EtfMultipleSectorsReturnRateHistoryResponse>(`/sectors/batch?${params.toString()}`);
+  }
+
 
 
 }

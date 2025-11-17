@@ -14,7 +14,7 @@ import { timeRangeValues } from "@/hooks/useEtfQueryHooks";
 import {usePreloadSectorReturnRates, useSectorReturnRate}  from "@/hooks/useEtfQueryHooks"
 import {getAvailableSectors} from "@/hooks/useEtfQueryHooks"
 import { getEtfCollect, addEtfCollect, deleteEtfCollect } from "@/hooks/useEtfQueryHooks";
-
+import { useMultipleSectorsReturnRateHistory}  from "@/hooks/useEtfQueryHooks"
 // 从基础数据派生出TimeRange类型
 export type TimeRange = typeof timeRangeValues[number];
 
@@ -63,6 +63,21 @@ export default function OverviewPage() {
     }));
   }, [selectedSectors]);
 
+  // 获取选中的板块名称数组
+  const selectedSectorNames = useMemo(() => {
+    return selectedSectors.map(sector => sector.sector);
+  }, [selectedSectors]);
+
+  const {
+    data: historyData,
+    isLoading: isHistoryLoading,
+    error: historyError
+  } = useMultipleSectorsReturnRateHistory(
+    selectedSectorNames,
+    "2024-09-20",
+    30,
+  )
+  console.log("多板块历史数据:", historyData);
   useEffect(() => {
     preload()
     const getConvertedOptions = async () => {
@@ -288,7 +303,7 @@ export default function OverviewPage() {
           />
         </div>
         <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
-          <LineChartComponent />
+          <LineChartComponent data={historyData}/>
         </div>
       </div>
 

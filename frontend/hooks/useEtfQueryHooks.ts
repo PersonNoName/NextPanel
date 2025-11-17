@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueries, UseQueryResult, UseQueryOptions } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
-import etfService, { ReturnRateBySectorsResponse } from '@/lib/api/etfService';
+import etfService, { ReturnRateBySectorsResponse, EtfMultipleSectorsReturnRateHistoryResponse } from '@/lib/api/etfService';
 import EtfCollectService from '@/lib/api/etfCollectService';
 import DateService from '@/lib/api/dateService';
 // ==================== 类型定义 ====================
@@ -246,6 +246,35 @@ export const deleteEtfCollect = async (cid: string) => {
   const data = await EtfCollectService.deleteEtfCollect(cid);
   return data;
 }
+
+interface UseMultipleSectorsReturnRateHistoryParams {
+  sectors: string[]
+  date: string
+  n: number
+  includeTiming?: boolean
+}
+
+export const useMultipleSectorsReturnRateHistory = (
+  sectors: string[],
+  date: string,
+  n: number
+): UseQueryResult<EtfMultipleSectorsReturnRateHistoryResponse> => {
+  return useQuery({
+    queryKey: ['multipleSectorsReturnRateHistory', sectors, date, n],
+    queryFn: async () => {
+      const data = await etfService.getMultipleSectorsReturnRateHistory(
+        sectors,
+        date,
+        n
+      );
+      return data; // 必须显式返回正确类型的数据
+    },
+    staleTime: 1000 * 60 * 60 * 12,
+    gcTime: 1000 * 60 * 60 * 24,
+    refetchOnWindowFocus: false,
+    enabled: sectors.length > 0 && !!date,
+  });
+};
 // ==================== 便捷 Hook ====================
 /**
  * 预加载 Hook - 用于组件中触发预加载
