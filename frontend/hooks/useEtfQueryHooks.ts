@@ -256,9 +256,9 @@ interface UseMultipleSectorsReturnRateHistoryParams {
 
 export const useMultipleSectorsReturnRateHistory = (
   sectors: string[],
-  date: string,
   n: number
 ): UseQueryResult<EtfMultipleSectorsReturnRateHistoryResponse> => {
+  const date = dateUtils.getToday();
   return useQuery({
     queryKey: ['multipleSectorsReturnRateHistory', sectors, date, n],
     queryFn: async () => {

@@ -1,11 +1,11 @@
 "use client";
 import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import queryClient from '@/lib/query/queryClient';
-import userService, { User, LoginRequest, LoginResponse } from '@/lib/api/userService';
+import userService, { UserResponse, User, LoginRequest, LoginResponse } from '@/lib/api/userService';
 import { toast } from 'sonner';
 
 // 获取当前用户信息的hook
-export const useGetCurrentUser = (): UseQueryResult<User> => {
+export const useGetCurrentUser = (): UseQueryResult<UserResponse> => {
   return useQuery({
     queryKey: ['currentUser'],
     queryFn: () => userService.getCurrentUser(),

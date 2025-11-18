@@ -8,6 +8,9 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
 }
+export interface UserResponse {
+  user: User;
+}
 
 // 登录请求接口
 export interface LoginRequest {
@@ -44,8 +47,8 @@ class UserService extends BaseService {
   /**
    * 获取当前用户信息
    */
-  async getCurrentUser(): Promise<User> {
-    return this.get<User>('/auth/me');
+  async getCurrentUser(): Promise<UserResponse> {
+    return this.get<UserResponse>('/auth/me');
   }
 
   /**

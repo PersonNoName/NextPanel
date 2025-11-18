@@ -15,6 +15,18 @@ import {usePreloadSectorReturnRates, useSectorReturnRate}  from "@/hooks/useEtfQ
 import {getAvailableSectors} from "@/hooks/useEtfQueryHooks"
 import { getEtfCollect, addEtfCollect, deleteEtfCollect } from "@/hooks/useEtfQueryHooks";
 import { useMultipleSectorsReturnRateHistory}  from "@/hooks/useEtfQueryHooks"
+import { Badge } from "@/components/ui/badge";
+
+// 定义选中行的数据类型
+interface SelectedRowData {
+  cid: string;
+  sector: string;
+  description?: string | null;
+  sort_order?: number;
+  etf_count?: number;
+  avg_return_rate_percent?: string;
+}
+
 // 从基础数据派生出TimeRange类型
 export type TimeRange = typeof timeRangeValues[number];
 
@@ -47,6 +59,7 @@ type OptionType = {
 
 export default function OverviewPage() {
   const [open, setOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState<SelectedRowData | null>(null) // 新增状态存储选中行数据
   const [timeSelected, setTimeSelected] = useState<TimeRange>(5);
   const [countSelected, setCountSelected] = useState("10")
   const { preload } = usePreloadSectorReturnRates()
@@ -74,10 +87,8 @@ export default function OverviewPage() {
     error: historyError
   } = useMultipleSectorsReturnRateHistory(
     selectedSectorNames,
-    "2024-09-20",
-    30,
+    timeSelected,
   )
-  console.log("多板块历史数据:", historyData);
   useEffect(() => {
     preload()
     const getConvertedOptions = async () => {
@@ -136,14 +147,21 @@ export default function OverviewPage() {
       try {
         const data = await getEtfCollect();
         console.log("用户自选板块数据:", data);
-
-        const formattedSectors: SectorItem[] = data.collections.map(collect => ({
-          cid: collect.cid.toString(),
-          sector: collect.sector,
-          description: collect.description,
-          sort_order: collect.sort_order,
-          etf_count: collect.item_count
-        }))
+        // 正确的数据访问方式
+        const formattedSectors: SectorItem[] = data.collections
+          .filter(
+            (collect): collect is Omit<typeof collect, 'sector'> & { sector: string } =>
+              collect.sector !== null &&
+              collect.sort_order !== null &&
+              collect.item_count !== null
+          )
+          .map(collect => ({
+            cid: collect.cid.toString(),
+            sector: collect.sector,
+            description: collect.description,
+            sort_order: collect.sort_order!,
+            etf_count: collect.item_count!
+          }));
 
         setSelectedSectors(formattedSectors);
       } catch (error) {
@@ -167,17 +185,35 @@ export default function OverviewPage() {
   
   const formatChangeRate = (value: string) => {
     const rate = parseFloat(value);
-    const bgColor = rate < 0 ? 'bg-green-200' : 'bg-red-200';
-    const textColor = rate < 0 ? 'text-green-800' : 'text-red-800';
+    const bgColor = rate < 0 ? 'hsl(82 84.5% 67.1%)' : 'hsl(0 90.6% 70.8%)';
+    const textColor = rate < 0 ? 'text-green-800' : 'text-red-900';
     
     return (
-      <span className={`px-2 py-1 rounded font-sm ${bgColor} ${textColor}`}>
+      <span 
+        className={`px-2 py-1 rounded font-sm ${textColor}`}
+        style={{ backgroundColor: bgColor }}
+      >
         {value}
       </span>
     );
   };
+  const formatCount = (value: string) => {
+    return (
+      <Badge variant="outline">{value}</Badge>
+    )
+  }
 
+  // 修改点击处理函数，保存选中行数据
   const handleNameClick = (row: any) => {
+    console.log("点击的行数据:", row);
+    setSelectedRow({
+      cid: row.cid,
+      sector: row.sector,
+      description: row.description,
+      sort_order: row.sort_order,
+      etf_count: row.etf_count,
+      avg_return_rate_percent: row.avg_return_rate_percent
+    });
     setOpen(true);
   };
   
@@ -209,7 +245,6 @@ export default function OverviewPage() {
       }
     } catch (error) {
       console.error("操作失败:", error);
-      alert(isCollected ? "添加自选失败！" : "删除自选失败！");
     }
   };
 
@@ -292,15 +327,32 @@ export default function OverviewPage() {
               onSelectionChange={handleSelectionChange}
             />
           </div>
-
-          <CustomSectionTable 
-            className="p-4 rounded-lg shadow w-full xl:w-96 h-full" 
-            columns={{ 
-              sector : '名称', 
-              etf_count: '数量',
-            }}
-            data={selectedSectors}
-          />
+          <div className="overflow-y-auto">
+            <DataTable 
+              columns={{ 
+                sector : '名称', 
+                etf_count: '数量',
+              }}
+              data={selectedSectors}
+              columnFormatters={{
+                etf_count: formatCount
+              }}
+              buttons={{
+                sector: [
+                  {
+                    label: (row) => row.sector,
+                    onClick: handleNameClick,
+                    variant: 'outline',
+                    className: 'px-2 py-1 text-xs shadow-sm'
+                  },
+                ]
+              }}
+              styles={{
+                table: 'w-full',
+                cell: 'whitespace-nowrap text-sm py-1'
+              }}
+            />
+          </div>
         </div>
         <div className="hidden md:block shadow bg-white rounded-lg overflow-hidden">
           <LineChartComponent data={historyData}/>
@@ -311,14 +363,34 @@ export default function OverviewPage() {
         <CustomDialog
           open={open}
           onOpenChange={setOpen}
-          title="全屏视图"
+          title={`${selectedRow?.sector || '板块'}详情`} // 使用选中的板块名称作为标题
           size="fullscreen"
         >
-          <div className="h-full">
-            {/* 大量内容 */}
+          <div className="h-full p-4">
+            {/* 在弹窗内容中使用选中的数据 */}
+            <div className="mb-4">
+              <h2 className="text-xl font-bold">板块详细信息</h2>
+              <p><strong>CID:</strong> {selectedRow?.cid}</p>
+              <p><strong>板块名称:</strong> {selectedRow?.sector}</p>
+              {selectedRow?.description && (
+                <p><strong>描述:</strong> {selectedRow?.description}</p>
+              )}
+              {selectedRow?.etf_count !== undefined && (
+                <p><strong>ETF数量:</strong> {selectedRow?.etf_count}</p>
+              )}
+              {selectedRow?.avg_return_rate_percent && (
+                <p><strong>平均涨跌幅:</strong> {selectedRow?.avg_return_rate_percent}</p>
+              )}
+            </div>
+            
+            {/* 这里可以添加更多基于选中板块的内容 */}
+            <div className="mt-4">
+              {/* 例如：显示该板块的详细图表、相关ETF列表等 */}
+              <p>这里可以显示板块 {selectedRow?.sector} 的更多详细信息...</p>
+            </div>
           </div>
         </CustomDialog>
       )}
     </div>
   )
-} 
+}

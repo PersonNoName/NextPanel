@@ -12,7 +12,7 @@ export interface EtfCollectItem {
   sector: string | null;
   description: string | null;
   sort_order: number | null;
-  etf_count: number | null;
+  item_count: number | null;
 }
 export interface EtfCollectDeleteResponse {
   message: string;
@@ -25,13 +25,15 @@ export interface EtfCollectResponse {
   collections: EtfCollectItem[];
 }
 
+
+
 class EtfCollectService extends BaseService { 
   constructor() {
     super('/etf-collect');
   }
   // 获取当前用户的自选ETF类别列表
-  async getEtfCollect(): Promise<EtfCollectResponse[]> {
-    return this.get<EtfCollectResponse[]>('');
+  async getEtfCollect(): Promise<EtfCollectResponse> {
+    return this.get<EtfCollectResponse>('');
   }
   // 添加自选ETF类别
   async addEtfCollect(data: EtfCollectRequest): Promise<EtfCollectAddResponse> {
