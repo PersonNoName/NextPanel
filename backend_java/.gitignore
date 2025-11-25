@@ -1,0 +1,94 @@
+# 1. 编译/构建产物（核心，避免上传编译后的冗余文件）
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+dist/
+nbdist/
+nbbuild/
+.nb-gradle/
+
+# 2. Maven 相关（避免上传本地 wrapper 或缓存）
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+# Maven 本地仓库缓存（如果项目根目录有 .m2 文件夹）
+.m2/
+
+# 3. 敏感配置文件（关键！避免泄露数据库密码、密钥等）
+# 配置文件（本地开发的敏感信息放在这里）
+src/main/resources/application.yml
+application.properties
+application-dev.properties
+src/main/resources/application-prod.yml
+application-prod.properties
+src/main/resources/application-dev.yml
+# 包含敏感信息的自定义配置
+*.secret.yml
+*.secret.properties
+# 环境变量文件（如果用 .env 存储密钥）
+.env
+.env.local
+.env.development.local
+# 密钥/证书文件
+*.pem
+*.key
+*.jks
+# 日志文件
+logs/
+*.log
+# 临时文件
+tmp/
+temp/
+
+# 4. IDE 工具配置（你原有内容，保留并补充）
+# STS/Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+# IDEA 本地历史记录
+.idea/history/
+# IDEA 索引缓存
+.idea/caches/
+# IDEA 运行配置（本地路径可能包含敏感信息）
+.idea/runConfigurations/
+
+# NetBeans
+/nbproject/private/
+/.nb-gradle/
+
+# VS Code
+.vscode/
+*.code-workspace
+# VS Code 缓存
+.vscode/cache/
+.vscode/extensions/
+.vscode/settings.json.user
+
+# 5. 其他冗余文件
+# 操作系统临时文件
+.DS_Store  # Mac
+Thumbs.db  # Windows
+# 帮助文档（如果 HELP.md 是本地说明，不需要上传可注释掉）
+# HELP.md
+# 构建日志
+BUILDING.txt
+# 测试报告（如果不需要上传测试结果）
+TEST-*.xml
+# 代码覆盖率报告
+coverage/
+jacoco/
+# 第三方依赖（如果手动下载了 jar 包放在 lib 目录）
+lib/
+!lib/*.pom  # 保留 pom 文件（如果需要）
