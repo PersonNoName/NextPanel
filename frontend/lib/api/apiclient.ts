@@ -2,9 +2,9 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { toast } from 'sonner';
 
 // 定义API响应的通用接口
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   status: 'success' | 'error';
-  statusCode: number;
+  code: number;
   message: string;
   data?: T;
   errors?: any;
@@ -12,7 +12,7 @@ interface ApiResponse<T = any> {
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

@@ -1,20 +1,20 @@
 import BaseService from './services';
+import { ApiResponse } from './apiclient';
 
 // 用户接口定义
 export interface User {
-  id: string;
+  id: number; // 改为数字类型，匹配后端
   username: string;
   email: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-export interface UserResponse {
-  user: User;
+  password?: null; // 明确后端返回的 null 类型（或用 string | null 更灵活）
+  createdAt?: string; // 后端已返回，可去掉 ? 改为必填，更准确
+  updatedAt?: string; // 同理，可改为必填
+  deletedAt?: null; // 后端返回的字段，声明为 null 类型
 }
 
 // 登录请求接口
 export interface LoginRequest {
-  username: string;
+  usernameOrEmail: string;
   password: string;
 }
 
@@ -47,8 +47,8 @@ class UserService extends BaseService {
   /**
    * 获取当前用户信息
    */
-  async getCurrentUser(): Promise<UserResponse> {
-    return this.get<UserResponse>('/auth/me');
+  async getCurrentUser(): Promise<User> {
+    return this.get<User>('/auth/me');
   }
 
   /**

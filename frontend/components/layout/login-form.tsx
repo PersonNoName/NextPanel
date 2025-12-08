@@ -28,10 +28,10 @@ export function LoginForm({
     e.preventDefault();
 
     const form = e.target as HTMLFormElement;
-    const username = form.elements.namedItem('username') as HTMLInputElement;
+    const usernameOrEmail = form.elements.namedItem('usernameOrEmail') as HTMLInputElement;
     const password = form.elements.namedItem('password') as HTMLInputElement;
     const loginData = {
-      username: username.value,
+      usernameOrEmail: usernameOrEmail.value,
       password: password.value,
     };
     mutate(loginData, {
@@ -56,9 +56,9 @@ export function LoginForm({
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="username">用户名</FieldLabel>
+                <FieldLabel htmlFor="usernameOrEmail">用户名</FieldLabel>
                 <Input
-                  id="username"
+                  id="usernameOrEmail"
                   type="text"
                   placeholder=""
                   required

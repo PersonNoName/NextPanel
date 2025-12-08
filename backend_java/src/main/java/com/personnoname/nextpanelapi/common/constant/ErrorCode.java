@@ -1,8 +1,6 @@
 package com.personnoname.nextpanelapi.common.constant;
 
-import lombok.Getter;
-
-@Getter
+// 移除 Lombok @Getter 注解（可选，若手动编写 getter）
 public enum ErrorCode {
     // 通用错误码
     SUCCESS(200, "成功"),
@@ -30,5 +28,14 @@ public enum ErrorCode {
     ErrorCode(int code, String message) {
         this.code = code;
         this.message = message;
+    }
+
+    // 手动编写 getter 方法（关键：替代 Lombok @Getter）
+    public int getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }

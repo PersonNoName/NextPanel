@@ -58,8 +58,8 @@ export function TeamSwitcher({
                     <CircleUserRound className="size-5" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{userData?.user?.username || '用户'}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData?.user?.email || ''}</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{userData?.username || '用户'}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{userData?.email || ''}</span>
                   </div>
                 </>
               )}

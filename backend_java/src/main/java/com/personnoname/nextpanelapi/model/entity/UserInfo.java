@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @TableName("user_info")
 public class UserInfo {
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private int id;
 
     @NotBlank(message = "用户名不能为空")
     @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")

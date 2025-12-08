@@ -35,7 +35,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleValidationException(MethodArgumentNotValidException e) {
+// 1. 把返回值从 ApiResponse<Void> 改为 ApiResponse<Map<String, String>>
+    public ApiResponse<Map<String, String>> handleValidationException(MethodArgumentNotValidException e) {
         BindingResult bindingResult = e.getBindingResult();
         Map<String, String> errorMap = new HashMap<>();
 
@@ -44,7 +45,7 @@ public class GlobalExceptionHandler {
         }
 
         log.warn("参数校验失败: {}", errorMap);
-        // 返回状态码 400，并将 map 传给 errors 字段
+        // 此时 error 方法的 T 推断为 Map<String, String>，返回类型完全匹配
         return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "参数校验失败", errorMap);
     }
 
