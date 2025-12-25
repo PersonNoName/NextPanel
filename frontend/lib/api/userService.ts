@@ -41,7 +41,7 @@ class UserService extends BaseService {
    * 用户登出
    */
   async logout(): Promise<void> {
-    return this.post('/auth/logout');
+    // return this.post('/auth/logout');
   }
 
   /**

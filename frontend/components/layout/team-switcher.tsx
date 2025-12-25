@@ -34,7 +34,6 @@ export function TeamSwitcher({
   const { isMobile } = useSidebar()
   // 使用forceRefresh=false确保优先使用缓存，避免不必要的加载
   const { data: userData, isLoading } = useGetCurrentUser()
-  console.log("当前用户数据:", userData);
   const { mutate: logout } = useLogout()
   return (
     <SidebarMenu>
