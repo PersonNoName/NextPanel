@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+devtools:
+  restart:
+    enabled: true  # 开启热部署
+    additional-paths: src/main/java  # 监听 Java 代码修改
+    exclude: WEB-INF/**  # 排除无需监听的目录
+
+myapp:
+  api:
+    prefix: /api
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
