@@ -1,0 +1,14 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ives.api.mapper.CalendarMapper">
+    <select id="findByDay" parameterType="String" resultType="com.ives.api.model.entity.Calendar">
+        SELECT Day, IsTradingDay FROM calendar WHERE Day = #{day}
+    </select>
+
+    <select id="findPreviousTradingDay" parameterType="String" resultType="com.ives.api.model.entity.Calendar">
+        SELECT Day, IsTradingDay FROM calendar WHERE Day <![CDATA[ < ]]> #{day} AND IsTradingDay = 1 ORDER BY day DESC LIMIT 1
+    </select>
+
+    <select id="findPreviousNTradingDays" parameterType="map" resultType="com.ives.api.model.entity.Calendar">
+        SELECT Day, IsTradingDay FROM calendar WHERE Day <![CDATA[ <= ]]> #{day} AND IsTradingDay = 1 ORDER BY day DESC LIMIT #{limit}
+    </select>
+</mapper>

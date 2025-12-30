@@ -34,13 +34,13 @@ public class Calendar implements Serializable {
      * 是否交易日（1=是，0=否）
      */
     @TableField("IsTradingDay") // 对应数据库字段名（数据库是驼峰，显式指定避免映射错误）
-    private Boolean isTradingDay;
+    private Integer isTradingDay;
 
     /**
      * 是否工作日（1=是，0=否）
      */
     @TableField("IsWorkingDay")
-    private Boolean isWorkingDay;
+    private Integer isWorkingDay;
 
     /**
      * 备注（如节假日名称）
@@ -52,7 +52,7 @@ public class Calendar implements Serializable {
      * 是否获取节假日（1=是，0=否）
      */
     @TableField("FetchHoliday")
-    private Boolean fetchHoliday;
+    private Integer fetchHoliday;
 
     /**
      * 更新时间（格式：yyyy-MM-dd HH:mm:ss 或其他字符串格式）
