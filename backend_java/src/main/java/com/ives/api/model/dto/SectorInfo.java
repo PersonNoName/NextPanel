@@ -7,12 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginResponse {
-    private String token;
-
-    private String username;
-
-    private String email;
-
-    private Integer userId;
+public class SectorInfo {
+    private Long cid;
+    private String sector;
+    private String description;
+    private Integer sortOrder;
+    private Integer etfCount;
 }

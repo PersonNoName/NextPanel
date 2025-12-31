@@ -48,6 +48,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Integer userId = jwtUtil.getUserIdFromToken(token);
                 String username = jwtUtil.getUsernameFromToken(token);
 
+                // 新增：userId为空时直接返回401
+                if (userId == null) {
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"code\":401,\"message\":\"Token中用户ID无效\"}");
+                    return; // 终止过滤器链，不再放行
+                }
+
+                // 将userId存入request attribute
+                request.setAttribute("userId", userId);
+
                 // 创建认证对象
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

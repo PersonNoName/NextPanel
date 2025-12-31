@@ -4,9 +4,13 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class RegisterRequest {
     @NotBlank(message = "用户名不能为空")
     @Size(min = 3, max = 10, message = "用户名长度应在 3 到 10 个字符之间")
