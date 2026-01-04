@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ives.api.common.constant.ErrorCode;
 import com.ives.api.common.exception.BusinessException;
-import com.ives.api.mapper.Convert.UserInfoConvertMapper;
+import com.ives.api.Convert.UserInfoConvertMapper;
 import com.ives.api.mapper.UserInfoMapper;
 import com.ives.api.model.dto.UserInfoDto;
 import com.ives.api.model.entity.UserInfo;

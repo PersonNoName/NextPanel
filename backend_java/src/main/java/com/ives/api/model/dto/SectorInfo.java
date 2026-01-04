@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SectorInfo {
-    private Long cid;
+    private Integer cid;
     private String sector;
     private String description;
     private Integer sortOrder;

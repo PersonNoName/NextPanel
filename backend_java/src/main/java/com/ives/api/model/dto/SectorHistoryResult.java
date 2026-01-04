@@ -1,10 +1,12 @@
 package com.ives.api.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SectorHistoryResult {
     private String sectorDescription;
     private Integer totalEtfs;

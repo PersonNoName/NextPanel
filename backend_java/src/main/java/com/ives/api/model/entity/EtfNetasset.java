@@ -1,14 +1,12 @@
 package com.ives.api.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 /**
  * <p>
@@ -26,49 +24,49 @@ public class EtfNetasset implements Serializable {
     /**
      * 同花顺代码（复合主键的一部分）
      */
-    @TableId(value = "ths_code", type = IdType.INPUT)
+    @TableField(value = "ths_code")
 //    @Schema(description = "同花顺代码")
     private String thsCode;
 
     /**
      * 日期（复合主键的一部分）
      */
-    @TableId(value = "time", type = IdType.INPUT)
+    @TableField(value = "time")
 //    @Schema(description = "日期")
-    private LocalDate time;
+    private String time;
 
     /**
      * 单位净值
      */
     @TableField("net_asset_value")
 //    @Schema(description = "单位净值")
-    private Float netAssetValue;
+    private BigDecimal netAssetValue;
 
     /**
      * 复权单位净值
      */
     @TableField("adjusted_nav")
 //    @Schema(description = "复权单位净值")
-    private Float adjustedNav;
+    private BigDecimal adjustedNav;
 
     /**
      * 累计单位净值
      */
     @TableField("accumulated_nav")
 //    @Schema(description = "累计单位净值")
-    private Float accumulatedNav;
+    private BigDecimal accumulatedNav;
 
     /**
      * 贴水
      */
     @TableField("premium")
 //    @Schema(description = "贴水")
-    private Float premium;
+    private BigDecimal premium;
 
     /**
      * 贴水率
      */
     @TableField("premium_ratio")
 //    @Schema(description = "贴水率")
-    private Float premiumRatio;
+    private BigDecimal premiumRatio;
 }

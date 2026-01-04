@@ -1,0 +1,56 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ives.api.mapper.EtfNetassetMapper">
+
+    <select id="findByCodeAndDate" resultType="com.ives.api.model.entity.EtfNetasset">
+        SELECT
+            ths_code,
+            time,
+            net_asset_value,
+            adjusted_nav,
+            accumulated_nav,
+            premium,
+            premium_ratio
+        FROM etf_netasset
+        WHERE ths_code = #{thsCode}
+          AND time = #{date}
+        LIMIT 1
+    </select>
+
+    <select id="findByCodesAndDate" resultType="com.ives.api.model.entity.EtfNetasset">
+        SELECT
+        ths_code,
+        time,
+        net_asset_value,
+        adjusted_nav,
+        accumulated_nav,
+        premium,
+        premium_ratio
+        FROM etf_netasset
+        WHERE ths_code IN
+        <foreach collection="thsCodes" item="code" open="(" separator="," close=")">
+            #{code}
+        </foreach>
+        AND time = #{date}
+    </select>
+
+    <select id="findByCodesAndDates" resultType="com.ives.api.model.entity.EtfNetasset">
+        SELECT
+        ths_code,
+        time,
+        net_asset_value,
+        adjusted_nav,
+        accumulated_nav,
+        premium,
+        premium_ratio
+        FROM etf_netasset
+        WHERE ths_code IN
+        <foreach collection="thsCodes" item="code" open="(" separator="," close=")">
+            #{code}
+        </foreach>
+        AND time IN
+        <foreach collection="dates" item="date" open="(" separator="," close=")">
+            #{date}
+        </foreach>
+    </select>
+
+</mapper>

@@ -1,0 +1,30 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ives.api.mapper.EtfInfoMapper">
+    <select id="findByCode" resultType="com.ives.api.model.entity.EtfInfo">
+        SELECT ths_code, chinese_name, sector
+        FROM etf_info
+        WHERE ths_code = #{thsCode}
+        LIMIT 1
+    </select>
+
+    <select id="findAll" resultType="com.ives.api.model.entity.EtfInfo">
+        SELECT ths_code, chinese_name, sector
+        FROM etf_info
+    </select>
+
+    <select id="findBySectors" resultType="com.ives.api.model.entity.EtfInfo">
+        SELECT ths_code, chinese_name, sector
+        FROM etf_info
+        WHERE sector IN
+        <foreach collection="sectors" item="sector" open="(" separator="," close=")">
+            #{sector}
+        </foreach>
+    </select>
+
+    <select id="findBySector" resultType="com.ives.api.model.entity.EtfInfo">
+        SELECT ths_code, chinese_name, sector
+        FROM etf_info
+        WHERE sector = #{sector}
+    </select>
+
+</mapper>

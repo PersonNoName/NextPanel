@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ives.api.mapper.CategoryMapper">
+    <resultMap id="BaseResultMap" type="com.ives.api.model.entity.Category">
+        <id column="cid" property="cid"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="item_count" property="itemCount"/>
+        <result column="status" property="status"/>
+    </resultMap>
+    
+    <select id="findAllActive" resultMap="BaseResultMap">
+        SELECT cid, name, description, sort_order, item_count, status
+        FROM category
+        WHERE status = 1
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="findByNames" resultMap="BaseResultMap">
+        SELECT cid, name, description, sort_order, item_count, status
+        FROM category
+        WHERE name IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <select id="findByName" resultMap="BaseResultMap">
+        SELECT cid, name, description, sort_order, item_count, status
+        FROM category
+        WHERE name = #{name}
+        LIMIT 1
+    </select>
+</mapper>

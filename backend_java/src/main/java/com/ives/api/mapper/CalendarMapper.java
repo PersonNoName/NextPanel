@@ -31,4 +31,6 @@ public interface CalendarMapper extends BaseMapper<Calendar> {
      */
     List<Calendar> findPreviousNTradingDays(@Param("day") String day,
                                             @Param("limit") Integer limit);
+
+
 }

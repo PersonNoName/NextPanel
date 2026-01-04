@@ -16,11 +16,11 @@ public class SectorReturnRateRequest {
 
     @NotNull(message = "start_date不能为空")
     @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "日期格式错误")
-    private String startDate;
+    private String start_date;
 
     @NotNull(message = "end_date不能为空")
     @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "日期格式错误")
-    private String endDate;
+    private String end_date;
 
     private Boolean includeDetails = false;
 }

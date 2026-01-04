@@ -15,7 +15,7 @@ class BaseService {
     try {
       const response = await apiCall;
       
-      if (response.status === 'success') {
+      if (response.success === true && response.code === 200) {
         return response.data as T;
       } else {
         // 如果响应状态是error，抛出错误

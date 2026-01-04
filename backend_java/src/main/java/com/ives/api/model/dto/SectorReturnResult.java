@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SectorReturnResult {
     private String sector;
-    private String categoryName;
+    private String category_name;
     private Integer count;
-    private Integer validCount;
-    private java.math.BigDecimal avgReturnRate;
-    private String avgReturnRatePercent;
+    private Integer valid_count;
+    private java.math.BigDecimal avg_return_rate;
+    private String avg_return_rate_percent;
 }
